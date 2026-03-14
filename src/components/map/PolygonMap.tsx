@@ -273,7 +273,7 @@ const PolygonMap = forwardRef<PolygonMapHandle, PolygonMapProps>(function Polygo
           });
 
           map.on('mouseenter', 'article-dots', (e) => {
-            const ev = e as { features: Array<{ properties: { label: string; title: string }; geometry: { coordinates: [number, number] } }> };
+            const ev = e as unknown as { features: Array<{ properties: { label: string; title: string }; geometry: { coordinates: [number, number] } }> };
             map.getCanvas().style.cursor = 'pointer';
             const props = ev.features?.[0]?.properties;
             const coords = ev.features?.[0]?.geometry?.coordinates as [number, number] | undefined;
@@ -293,7 +293,7 @@ const PolygonMap = forwardRef<PolygonMapHandle, PolygonMapProps>(function Polygo
           });
 
           map.on('click', 'article-dots', (e) => {
-            const ev = e as { features: Array<{ properties: { title: string } }> };
+            const ev = e as unknown as { features: Array<{ properties: { title: string } }> };
             const title = ev.features?.[0]?.properties?.title;
             if (title) window.open(`https://${language}.wikipedia.org/wiki/${encodeURIComponent(title)}`, '_blank');
           });
