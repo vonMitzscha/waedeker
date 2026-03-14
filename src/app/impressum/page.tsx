@@ -50,9 +50,7 @@ export default function ImpressumPage() {
       custom: (
         <p className="text-sm text-[#700700]/65 leading-relaxed">
           {/* TODO: Name und Anschrift eintragen */}
-          Vorname Nachname<br />
-          Musterstraße 1<br />
-          12345 Musterstadt
+          Marc Eric Mitzscherling<br />
         </p>
       ),
     },
@@ -61,10 +59,12 @@ export default function ImpressumPage() {
       body: null,
       custom: (
         <p className="text-sm text-[#700700]/65 leading-relaxed">
-          {/* TODO: E-Mail eintragen */}
           E-Mail:{' '}
-          <a href="mailto:mail@example.com" className="underline underline-offset-2 hover:text-[#700700]/90">
-            mail@example.com
+          <a
+            href={['mailto:support', 'mitzscherling.digital'].join('@')}
+            className="underline underline-offset-2 hover:text-[#700700]/90"
+          >
+            {'support' + '\u0040' + 'mitzscherling' + '\u002E' + 'digital'}
           </a>
         </p>
       ),

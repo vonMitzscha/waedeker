@@ -33,19 +33,19 @@ const de = {
     badge: 'Vom Menschen erdacht・Mit Maschine gemacht',
     back: 'Zurück',
     sections: {
-      identity: { heading: 'Angaben gemäß § 5 TMG' },
+      identity: { heading: 'Kontaktinformationen' },
       contact: { heading: 'Kontakt' },
       liability: {
         heading: 'Haftung für Inhalte',
-        body: 'Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.',
+        body: 'Diese Website ist eine private, nicht-kommerzielle Website. In Österreich besteht für solche Websites keine gesetzliche Impressumspflicht nach dem ECG. Die Angaben auf dieser Seite erfolgen freiwillig. Für eigene Inhalte wird nach allgemeinen Gesetzen Verantwortung übernommen; eine Verpflichtung zur Überwachung fremder Inhalte besteht nicht.',
       },
       links: {
         heading: 'Haftung für Links',
-        body: 'Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.',
+        body: 'Diese Website enthält Links zu externen Websites Dritter, auf deren Inhalte kein Einfluss besteht. Für diese fremden Inhalte kann daher keine Gewähr übernommen werden. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber verantwortlich.',
       },
       copyright: {
         heading: 'Urheberrecht',
-        body: 'Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen Zustimmung des jeweiligen Autors bzw. Erstellers.',
+        body: 'Die selbst erstellten Inhalte und Werke auf dieser Website unterliegen dem österreichischen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechts bedürfen der schriftlichen Zustimmung des Erstellers.',
       },
       sources: {
         heading: 'Datenquellen',

@@ -4,38 +4,38 @@ import ClientProviders from "@/components/ClientProviders";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://waedeker.netzgewoelbe.com"),
-  title: "Waedeker",
+  title: "Waedeker · Wikipedia's knowledge in a handy Baedeker-Format",
   description:
-    "Das Wissen von Wikipedia im handlichen Baedeker-Format. Erstelle ein kompaktes offline verwendbares Wikipedia-Archiv als ZIM-Datei für jede beliebige Region der Welt.",
+    "Create a tailored Wikipedia archive as a ZIM file – available offline on hikes, expeditions, and in areas without network coverage.",
   openGraph: {
-    title: "Waedeker",
+    title: "Waedeker · Wikipedia's knowledge in a handy Baedeker-Format",
     description:
-      "Erstelle ein maßgeschneidertes Wikipedia-Archiv als ZIM-Datei – offline nutzbar auf Wanderungen, Expeditionen und in Gebieten ohne Netzabdeckung.",
+      "Create a tailored Wikipedia archive as a ZIM file – available offline on hikes, expeditions, and in areas without network coverage.",
     url: "https://waedeker.netzgewoelbe.com",
     siteName: "Waedeker",
-    locale: "de_DE",
+    locale: "en_US",
     type: "website",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og-image.jpeg",
         width: 1200,
         height: 630,
-        alt: "Waedeker – Das Wissen von Wikipedia im handlichen Baedeker-Format",
+        alt: "Waedeker · Wikipedia's knowledge in a handy Baedeker-Format",
       },
       {
-        url: "/og-square.png",
+        url: "/og-square.jpeg",
         width: 1200,
         height: 1200,
-        alt: "Waedeker – Das Wissen von Wikipedia im handlichen Baedeker-Format",
+        alt: "Waedeker · Wikipedia's knowledge in a handy Baedeker-Format",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Waedeker",
+    title: "Waedeker · Wikipedia's knowledge in a handy Baedeker-Format",
     description:
-      "Erstelle ein maßgeschneidertes Wikipedia-Archiv als ZIM-Datei – offline nutzbar auf Wanderungen, Expeditionen und in Gebieten ohne Netzabdeckung.",
-    images: ["/twitter-card.png"],
+      "Create a tailored Wikipedia archive as a ZIM file – available offline on hikes, expeditions, and in areas without network coverage.",
+    images: ["/twitter-card.jpeg"],
   },
   icons: {
     icon: [

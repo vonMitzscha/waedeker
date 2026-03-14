@@ -33,19 +33,19 @@ const en = {
     badge: 'Conceived by HI・Made with AI',
     back: 'Back',
     sections: {
-      identity: { heading: 'Contact information' },
+      identity: { heading: 'Responsibe' },
       contact: { heading: 'Contact' },
       liability: {
         heading: 'Liability for content',
-        body: 'As a service provider, we are responsible for our own content on these pages in accordance with general law. However, we are not obligated to monitor transmitted or stored third-party information or to investigate circumstances that indicate illegal activity.',
+        body: 'This is a private, non-commercial website. Under Austrian law (ECG), private websites are not subject to a mandatory legal notice requirement. The information provided here is voluntary. Responsibility is assumed for own content in accordance with general law; there is no obligation to monitor third-party content.',
       },
       links: {
         heading: 'Liability for links',
-        body: 'Our website contains links to external third-party websites over whose content we have no control. Therefore we cannot accept any liability for this external content. The respective provider or operator of the linked pages is always responsible for their content.',
+        body: 'This website contains links to external third-party websites over whose content there is no control. Therefore no liability can be accepted for this external content. The respective provider or operator of the linked pages is always responsible for their content.',
       },
       copyright: {
         heading: 'Copyright',
-        body: 'The content and works created by the site operators on these pages are subject to German copyright law. Duplication, processing, distribution, or any form of commercialization of such material beyond the scope of copyright law requires the written consent of the respective author or creator.',
+        body: 'The content and works created on this website are subject to Austrian copyright law. Duplication, processing, distribution, or any form of commercialization of such material beyond the scope of copyright law requires the written consent of the creator.',
       },
       sources: {
         heading: 'Data sources',

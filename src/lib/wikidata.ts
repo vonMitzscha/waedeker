@@ -41,7 +41,7 @@ async function sparqlQuery(query: string): Promise<Binding[]> {
   const res = await fetch(url, {
     headers: {
       Accept: 'application/sparql-results+json',
-      'User-Agent': 'GeoZIMWizard/1.0 (https://github.com/vonMitzscha/geo-zim-wizard)',
+      'User-Agent': 'Waedeker/1.0 (https://waedeker.netzgewoelbe.com)',
     },
   });
   if (!res.ok) throw new Error(`Wikidata SPARQL error: ${res.status}`);
@@ -418,12 +418,12 @@ function buildDockerCompose(
     command: >
       mwoffliner
       --mwUrl=https://${lang}.wikipedia.org
-      --adminEmail=your@email.com
+      --adminEmail=support@mitzscherling.digital
       --outputDirectory=/output
       --filenamePrefix=${prefix}
       --customZimTitle="${zimTitle}"
       --customZimDescription="${zimDesc}"
-      --publisher=Netzgewölbe
+      --publisher=Waedeker
       --webp
       --minifyHtml
       --speed=0.5
@@ -1003,7 +1003,7 @@ function buildReadme(
 
   return `# Wikipedia Offline-Archiv
 
-Erstellt mit [Geo ZIM Wizard](https://github.com/vonMitzscha/geo-zim-wizard)
+Erstellt mit [Waedeker](https://waedeker.netzgewoelbe.com)
 
 ## Dein Archiv
 
