@@ -59,11 +59,13 @@ export default function RootLayout({
   return (
     <html lang="de">
       <head>
-        <link rel="preconnect" href="https://basemaps.cartocdn.com" />
-        <link rel="preconnect" href="https://a.basemaps.cartocdn.com" />
-        <link rel="preconnect" href="https://b.basemaps.cartocdn.com" />
-        <link rel="preconnect" href="https://c.basemaps.cartocdn.com" />
+        <link rel="preconnect" href="https://basemaps.cartocdn.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://a.basemaps.cartocdn.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://b.basemaps.cartocdn.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://c.basemaps.cartocdn.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://basemaps.cartocdn.com" />
+        <link rel="dns-prefetch" href="https://query.wikidata.org" />
+        <link rel="preconnect" href="https://nominatim.openstreetmap.org" crossOrigin="anonymous" />
       </head>
       <body><ClientProviders>{children}</ClientProviders></body>
     </html>

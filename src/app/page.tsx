@@ -89,16 +89,14 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Preload overlay modules + MapLibre as soon as the mode-select screen appears
+  // Preload MapLibre + overlay modules immediately on mount
   useEffect(() => {
-    if (step === 'mode-select') {
-      import('@/components/wizard/MapSelectionOverlay');
-      import('@/components/wizard/PolygonSelectionOverlay');
-      import('@/components/wizard/RectangleSelectionOverlay');
-      import('@/components/wizard/GpxSelectionOverlay');
-      import('maplibre-gl');
-    }
-  }, [step]);
+    import('maplibre-gl');
+    import('@/components/wizard/MapSelectionOverlay');
+    import('@/components/wizard/PolygonSelectionOverlay');
+    import('@/components/wizard/RectangleSelectionOverlay');
+    import('@/components/wizard/GpxSelectionOverlay');
+  }, []);
 
   const handleModeSelect = useCallback((m: SelectionMode) => {
     setMode(m);
