@@ -3,7 +3,7 @@ import type { Translations } from './types';
 const de = {
   hero: {
     pronunciation: '/ˈveːdəkɐ/',
-    slogan: 'Das Wissen von Wikipedia im handlichen Baedeker-Format',
+    slogan: 'Wikipedias Wissen im handlichen Baedeker-Format',
     description:
       'Erstelle ein kompaktes offline verwendbares Wikipedia-Archiv als ZIM-Datei für jede beliebige Region der Welt – perfekt für Wanderungen, Expeditionen oder Gebiete ohne Netzabdeckung.',
     ctaStart: 'Gebiet auswählen',
@@ -13,7 +13,7 @@ const de = {
       {
         num: '01',
         title: 'Gebiet wählen',
-        desc: 'Zeichne einen Punkt mit Radius, ein Rechteck, ein Polygon auf der Karte oder lade eine GPX-Datei einer Route hoch.',
+        desc: 'Zeichne einen Punkt mit Radius, ein Rechteck, ein Polygon auf der Karte oder lade die GPX-Datei einer Route hoch.',
       },
       {
         num: '02',
@@ -33,7 +33,7 @@ const de = {
     badge: 'Vom Menschen erdacht・Mit Maschine gemacht',
     back: 'Zurück',
     sections: {
-      identity: { heading: 'Kontaktinformationen' },
+      identity: { heading: 'Verantwortlich' },
       contact: { heading: 'Kontakt' },
       liability: {
         heading: 'Haftung für Inhalte',

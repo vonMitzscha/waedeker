@@ -33,7 +33,7 @@ const en = {
     badge: 'Conceived by HI・Made with AI',
     back: 'Back',
     sections: {
-      identity: { heading: 'Responsibe' },
+      identity: { heading: 'Responsible' },
       contact: { heading: 'Contact' },
       liability: {
         heading: 'Liability for content',
