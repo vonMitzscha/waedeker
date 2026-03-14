@@ -1,0 +1,149 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Rakkas&display=swap');
+@import 'maplibre-gl/dist/maplibre-gl.css';
+@import "tailwindcss";
+
+:root {
+  --background: #F5EDE0;
+  --foreground: #700700;
+  --accent: #6B8F3E;
+  --border: #c4a882;
+  --muted: #b89370;
+  --surface: #EDE0CE;
+  --surface-elevated: #F9F3EA;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Rakkas', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 200px 200px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.035;
+}
+
+/* MapLibre overrides */
+.maplibregl-ctrl-group {
+  background: #F9F3EA !important;
+  border: 1px solid #c4a882 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 8px rgba(112, 7, 7, 0.08) !important;
+}
+.maplibregl-ctrl-group button {
+  color: #700700 !important;
+}
+.maplibregl-ctrl-group button:hover {
+  background: #EDE0CE !important;
+}
+.maplibregl-ctrl-attrib {
+  background: rgba(249,243,234,0.85) !important;
+  font-size: 10px !important;
+  color: #b89370 !important;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #c4a882;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #700700;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid #F9F3EA;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #700700;
+  border-radius: 50%;
+  border: 2px solid #F9F3EA;
+  cursor: pointer;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* MapLibre popup styling */
+.maplibregl-popup-content {
+  background: #F9F3EA !important;
+  border: 1px solid #c4a882 !important;
+  border-radius: 10px !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 4px 20px rgba(112, 7, 7, 0.14) !important;
+  font-family: 'Inter', system-ui, sans-serif !important;
+}
+.maplibregl-popup-tip {
+  border-top-color: #c4a882 !important;
+  border-bottom-color: #c4a882 !important;
+}
+.wiki-popup a {
+  color: #700700;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  display: block;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.wiki-popup a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
