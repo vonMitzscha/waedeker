@@ -106,14 +106,14 @@ function OsSelector({ os, onChange, labels }: { os: OS; onChange: (os: OS) => vo
 // ── Step image paths ──────────────────────────────────────────────────────────
 
 const STEP_IMAGES = [
-  '/setupguide/step1.jpeg',
-  '/setupguide/step2.jpeg',
-  '/setupguide/step3.jpeg',
-  '/setupguide/step4.jpeg',
-  '/setupguide/step5.jpeg',
-  '/setupguide/step6.jpeg',
-  '/setupguide/step7.jpeg',
-  '/setupguide/step8.jpeg',
+  '/setupguide/step1v2.jpeg',
+  '/setupguide/step2v2.jpeg',
+  '/setupguide/step3v2.jpeg',
+  '/setupguide/step4v2.jpeg',
+  '/setupguide/step5v2.jpeg',
+  '/setupguide/step6v2.jpeg',
+  '/setupguide/step7v2.jpeg',
+  '/setupguide/step8v2.jpeg',
 ];
 
 // ── Step content builder ──────────────────────────────────────────────────────
