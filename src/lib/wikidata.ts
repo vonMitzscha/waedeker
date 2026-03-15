@@ -363,7 +363,12 @@ export async function generateAndDownloadZip(
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `geo-zim-${lang}-${areaLabel.replace(/[^\w]/g, '_').slice(0, 30)}.zip`;
+  const safeArea = areaLabel
+    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue')
+    .replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^\w-]/g, '_').slice(0, 40);
+  a.download = `waedeker-config-${safeArea}.zip`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

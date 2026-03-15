@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useT } from '@/i18n';
 import type { Translations } from '@/i18n/types';
@@ -102,111 +103,17 @@ function OsSelector({ os, onChange, labels }: { os: OS; onChange: (os: OS) => vo
   );
 }
 
-// ── Step illustrations (placeholder areas) ───────────────────────────────────
+// ── Step image paths ──────────────────────────────────────────────────────────
 
-const ILLUSTRATIONS: { bg: string; icon: React.ReactNode }[] = [
-  // 0 – Unzip
-  {
-    bg: 'linear-gradient(135deg, #EDE0CE 0%, #d8cdb8 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <rect x="10" y="14" width="44" height="52" rx="5" fill="#c4a882" opacity="0.3" />
-        <rect x="16" y="8" width="36" height="48" rx="5" fill="#F9F3EA" stroke="#c4a882" strokeWidth="2" />
-        <path d="M28 8v12h16" stroke="#c4a882" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M36 30v16M28 38l8 8 8-8" stroke="#700700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <rect x="22" y="50" width="28" height="6" rx="2" fill="#700700" opacity="0.15" />
-      </svg>
-    ),
-  },
-  // 1 – Docker install
-  {
-    bg: 'linear-gradient(135deg, #ddedf7 0%, #b8d8ee 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <rect x="8" y="34" width="10" height="8" rx="2" fill="#0db7ed" opacity="0.7" />
-        <rect x="21" y="34" width="10" height="8" rx="2" fill="#0db7ed" opacity="0.7" />
-        <rect x="34" y="34" width="10" height="8" rx="2" fill="#0db7ed" opacity="0.7" />
-        <rect x="21" y="23" width="10" height="8" rx="2" fill="#0db7ed" opacity="0.5" />
-        <rect x="34" y="23" width="10" height="8" rx="2" fill="#0db7ed" opacity="0.5" />
-        <rect x="34" y="12" width="10" height="8" rx="2" fill="#0db7ed" opacity="0.35" />
-        <path d="M8 48c0 0 4 10 28 10s28-10 28-10H8z" fill="#0db7ed" opacity="0.25" />
-        <path d="M8 48q8-4 20 0t20-4" stroke="#0db7ed" strokeWidth="2" fill="none" />
-        <circle cx="58" cy="20" r="4" fill="#0db7ed" opacity="0.5" />
-        <path d="M58 20c0 0 4-8 8-6" stroke="#0db7ed" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  // 2 – Docker start
-  {
-    bg: 'linear-gradient(135deg, #e8f0e0 0%, #d0e3c0 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <circle cx="36" cy="36" r="26" fill="#6B8F3E" opacity="0.12" stroke="#6B8F3E" strokeWidth="2" />
-        <path d="M28 24l20 12-20 12V24z" fill="#6B8F3E" />
-      </svg>
-    ),
-  },
-  // 3 – Terminal
-  {
-    bg: 'linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <rect x="8" y="16" width="56" height="40" rx="6" fill="#1e1e1e" stroke="#444" strokeWidth="1.5" />
-        <rect x="8" y="16" width="56" height="12" rx="6" fill="#333" />
-        <circle cx="20" cy="22" r="3" fill="#ff5f57" />
-        <circle cx="30" cy="22" r="3" fill="#febc2e" />
-        <circle cx="40" cy="22" r="3" fill="#28c840" />
-        <path d="M16 38l8 4-8 4" stroke="#6B8F3E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M28 46h16" stroke="#888" strokeWidth="2" strokeLinecap="round" />
-        <rect x="44" y="42" width="2" height="8" rx="1" fill="#ccc" />
-      </svg>
-    ),
-  },
-  // 4 – Navigate
-  {
-    bg: 'linear-gradient(135deg, #f0e8d0 0%, #e0d0b0 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <path d="M10 26c0-3.3 2.7-6 6-6h16l6 8h18c3.3 0 6 2.7 6 6v18c0 3.3-2.7 6-6 6H16c-3.3 0-6-2.7-6-6V26z" fill="#c4a882" opacity="0.4" stroke="#c4a882" strokeWidth="1.5" />
-        <path d="M36 36v14M29 43l7 7 7-7" stroke="#700700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  // 5 – Build
-  {
-    bg: 'linear-gradient(135deg, #f5ede0 0%, #ead4b4 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <rect x="10" y="18" width="52" height="36" rx="6" fill="#F9F3EA" stroke="#c4a882" strokeWidth="1.5" />
-        <path d="M18 30l6 6-6 6" stroke="#700700" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M28 42h16" stroke="#700700" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
-        <path d="M28 36h12" stroke="#700700" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
-      </svg>
-    ),
-  },
-  // 6 – Wait
-  {
-    bg: 'linear-gradient(135deg, #ede0ce 0%, #d8c8b0 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <circle cx="36" cy="36" r="24" fill="none" stroke="#c4a882" strokeWidth="3" />
-        <path d="M36 18v18l12 6" stroke="#700700" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="36" cy="36" r="3" fill="#700700" />
-      </svg>
-    ),
-  },
-  // 7 – Kiwix
-  {
-    bg: 'linear-gradient(135deg, #e0eed4 0%, #c8e0b4 100%)',
-    icon: (
-      <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
-        <rect x="12" y="14" width="48" height="44" rx="5" fill="#6B8F3E" opacity="0.15" stroke="#6B8F3E" strokeWidth="2" />
-        <path d="M20 28h32M20 36h24M20 44h16" stroke="#6B8F3E" strokeWidth="2.5" strokeLinecap="round" />
-        <circle cx="52" cy="48" r="12" fill="#6B8F3E" />
-        <path d="M47 48l3 4 7-7" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
+const STEP_IMAGES = [
+  '/setupguide/step1.jpeg',
+  '/setupguide/step2.jpeg',
+  '/setupguide/step3.jpeg',
+  '/setupguide/step4.jpeg',
+  '/setupguide/step5.jpeg',
+  '/setupguide/step6.jpeg',
+  '/setupguide/step7.jpeg',
+  '/setupguide/step8.jpeg',
 ];
 
 // ── Step content builder ──────────────────────────────────────────────────────
@@ -535,7 +442,7 @@ export default function SetupGuide({ onClose }: SetupGuideProps) {
   }, [handleKey]);
 
   const current = steps[step];
-  const illus = ILLUSTRATIONS[step];
+  const stepImage = STEP_IMAGES[step];
   const isLast = step === steps.length - 1;
 
   const goTo = (nextStep: number) => {
@@ -565,43 +472,42 @@ export default function SetupGuide({ onClose }: SetupGuideProps) {
         exit={{ opacity: 0, scale: 0.94, y: 24 }}
         transition={{ type: 'spring', damping: 26, stiffness: 320 }}
       >
-        {/* ── Left: Illustration ── */}
-        <div
-          className="hidden sm:flex w-[44%] flex-col items-center justify-center p-8 relative flex-shrink-0"
-          style={{ background: illus.bg, transition: 'background 0.5s' }}
-        >
+        {/* ── Left: Step image ── */}
+        <div className="hidden sm:block w-[44%] relative flex-shrink-0 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={{ duration: 0.25 }}
+              className="absolute inset-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
             >
-              {illus.icon}
+              <Image
+                src={stepImage}
+                alt={`Schritt ${step + 1}`}
+                fill
+                className="object-cover object-center"
+                priority
+              />
             </motion.div>
           </AnimatePresence>
 
           {/* Step dots */}
-          <div className="absolute bottom-5 flex gap-1.5">
+          <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-1.5 z-10">
             {steps.map((_, i) => (
               <button
                 key={i}
                 onClick={() => goTo(i)}
                 className={`rounded-full transition-all duration-300 ${
                   i === step
-                    ? 'w-5 h-1.5 bg-[#700700]/50'
-                    : 'w-1.5 h-1.5 bg-[#700700]/20 hover:bg-[#700700]/35'
+                    ? 'w-5 h-1.5 bg-white/80'
+                    : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/60'
                 }`}
                 aria-label={t.setupGuide.nav.stepLabel(i + 1)}
               />
             ))}
           </div>
-
-          {/* Placeholder label */}
-          <span className="absolute top-3 left-3 text-[10px] text-[#700700]/20 font-mono select-none">
-            {t.setupGuide.placeholder}
-          </span>
         </div>
 
         {/* ── Right: Content ── */}
