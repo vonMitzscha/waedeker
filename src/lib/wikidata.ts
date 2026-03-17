@@ -81,6 +81,13 @@ export async function queryWikidata(
     bd:serviceParam wikibase:cornerWest "Point(${selection.sw[0]} ${selection.sw[1]})"^^geo:wktLiteral.
     bd:serviceParam wikibase:cornerEast "Point(${selection.ne[0]} ${selection.ne[1]})"^^geo:wktLiteral.
   }`;
+  } else if (selection.type === 'admin-area') {
+    const [minLng, minLat, maxLng, maxLat] = selection.bbox;
+    spatialService = `SERVICE wikibase:box {
+    ?item wdt:P625 ?coord.
+    bd:serviceParam wikibase:cornerWest "Point(${minLng} ${minLat})"^^geo:wktLiteral.
+    bd:serviceParam wikibase:cornerEast "Point(${maxLng} ${maxLat})"^^geo:wktLiteral.
+  }`;
   } else {
     const [lng, lat] = selection.center;
     spatialService = `SERVICE wikibase:around {
@@ -127,10 +134,12 @@ SELECT DISTINCT ?item ?itemLabel ?article ?coord ?type ?typeLabel WHERE {
     return acc;
   }, []);
 
-  // For polygon/route: filter bbox results to only include articles inside the polygon
+  // For polygon/route/admin-area: filter bbox results to only include articles inside the polygon
   if (selection.type === 'polygon') {
     articles = articles.filter((a) => !a.coord || pointInPolygon(a.coord, selection.points));
   } else if (selection.type === 'route') {
+    articles = articles.filter((a) => !a.coord || pointInPolygon(a.coord, selection.polygon));
+  } else if (selection.type === 'admin-area') {
     articles = articles.filter((a) => !a.coord || pointInPolygon(a.coord, selection.polygon));
   }
 
@@ -265,6 +274,13 @@ export async function queryCategoriesForArea(
     bd:serviceParam wikibase:cornerWest "Point(${selection.sw[0]} ${selection.sw[1]})"^^geo:wktLiteral.
     bd:serviceParam wikibase:cornerEast "Point(${selection.ne[0]} ${selection.ne[1]})"^^geo:wktLiteral.
   }`;
+  } else if (selection.type === 'admin-area') {
+    const [minLng, minLat, maxLng, maxLat] = selection.bbox;
+    spatialService = `SERVICE wikibase:box {
+    ?item wdt:P625 ?coord.
+    bd:serviceParam wikibase:cornerWest "Point(${minLng} ${minLat})"^^geo:wktLiteral.
+    bd:serviceParam wikibase:cornerEast "Point(${maxLng} ${maxLat})"^^geo:wktLiteral.
+  }`;
   } else {
     const [lng, lat] = selection.center;
     spatialService = `SERVICE wikibase:around {
@@ -319,15 +335,27 @@ export async function generateAndDownloadZip(
     const placeName = await reverseGeocode(cLat, cLng);
     areaLabel = placeName ?? `${cLat.toFixed(3)}N_${cLng.toFixed(3)}E`;
   } else if (selection.type === 'route') {
-    const lngs = selection.trackPoints.map((p) => p[0]);
-    const lats = selection.trackPoints.map((p) => p[1]);
-    const cLng = (Math.min(...lngs) + Math.max(...lngs)) / 2;
-    const cLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-    const placeName = await reverseGeocode(cLat, cLng);
-    areaLabel = placeName ?? `${cLat.toFixed(3)}N_${cLng.toFixed(3)}E`;
+    const pts = selection.trackPoints;
+    const [startLng, startLat] = pts[0];
+    const [endLng, endLat] = pts[pts.length - 1];
+    const [startName, endName] = await Promise.all([
+      reverseGeocode(startLat, startLng, uiLocale),
+      reverseGeocode(endLat, endLng, uiLocale),
+    ]);
+    const from = startName ?? `${startLat.toFixed(3)}N`;
+    const to = endName ?? `${endLat.toFixed(3)}N`;
+    areaLabel = uiLocale === 'en'
+      ? `Route from ${from} to ${to}`
+      : `Route von ${from} nach ${to}`;
   } else if (selection.type === 'rectangle') {
     const cLng = (selection.sw[0] + selection.ne[0]) / 2;
     const cLat = (selection.sw[1] + selection.ne[1]) / 2;
+    const placeName = await reverseGeocode(cLat, cLng);
+    areaLabel = placeName ?? `${cLat.toFixed(3)}N_${cLng.toFixed(3)}E`;
+  } else if (selection.type === 'admin-area') {
+    const [minLng, minLat, maxLng, maxLat] = selection.bbox;
+    const cLat = (minLat + maxLat) / 2;
+    const cLng = (minLng + maxLng) / 2;
     const placeName = await reverseGeocode(cLat, cLng);
     areaLabel = placeName ?? `${cLat.toFixed(3)}N_${cLng.toFixed(3)}E`;
   } else {
@@ -394,6 +422,8 @@ function buildDockerCompose(
     coordPart = '';
   } else if (selection.type === 'rectangle') {
     coordPart = '';
+  } else if (selection.type === 'admin-area') {
+    coordPart = '';
   } else {
     coordPart = selection.label
       ? ''
@@ -410,6 +440,8 @@ function buildDockerCompose(
         const hKm = Math.round((selection.ne[1] - selection.sw[1]) * 111);
         return `Rechteck ${wKm}×${hKm} km`;
       })()
+    : selection.type === 'admin-area'
+    ? `Verwaltungsgebiet (${selection.label ?? ''})`
     : `Radius: ${selection.radiusKm} km`;
   const zimDesc = `${areaLabel}${coordPart} | ${selDesc} | ${lang.toUpperCase()} Wikipedia`.slice(0, 80);
 
@@ -494,26 +526,42 @@ export function buildMapHtml(
   let clipPathDef: string, bgLayer: string, selectionOverlay: string, selectionMarker: string, statCard2: string;
   let jsProj: string;
 
+  // Shared Mercator-y helper: MY(lat) = atanh(sin(φ)) * 180/π
+  // Converts geographic latitude to Web-Mercator y in degree-equivalents so that
+  // x (longitude) and y share the same unit and scale — exactly what MapLibre uses.
+  const MY = (lat: number) => Math.atanh(Math.sin(lat * Math.PI / 180)) * 180 / Math.PI;
+  // Inverse: from Mercator-y back to latitude
+  const fromMY = (my: number) => Math.asin(Math.tanh(my * Math.PI / 180)) * 180 / Math.PI;
+  // Build a Mercator projection for any bbox (shared by polygon / route / rectangle / admin-area)
+  const mercProj = (minLng: number, minLat: number, maxLng: number, maxLat: number) => {
+    const lng0 = (minLng + maxLng) / 2;
+    const myMin = MY(minLat), myMax = MY(maxLat);
+    const myCtr = (myMin + myMax) / 2;
+    const lat0 = fromMY(myCtr);
+    const lngSpan = maxLng - minLng;
+    const latSpan = Math.abs(myMax - myMin);
+    const halfDeg = Math.max(lngSpan, latSpan) / 2 * 1.15;
+    const sc = 280 / halfDeg;
+    const proj = (lng: number, lat: number): [number, number] => [
+      300 + (lng - lng0) * sc,
+      300 - (MY(lat) - myCtr) * sc,
+    ];
+    const jsP = `function MY(lat){return Math.atanh(Math.sin(lat*Math.PI/180))*180/Math.PI;}
+const CLng=${lng0},MYCtr=${myCtr.toFixed(6)},SC=${sc.toFixed(6)};
+function proj(lng,lat){return[300+(lng-CLng)*SC,300-(MY(lat)-MYCtr)*SC];}`;
+    return { lng0, lat0, myCtr, sc, proj, jsP };
+  };
+
   if (selection.type === 'polygon') {
     const lngs = selection.points.map((p) => p[0]);
     const lats = selection.points.map((p) => p[1]);
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    centerLng = (minLng + maxLng) / 2;
-    centerLat = (minLat + maxLat) / 2;
-    const cosL = Math.cos(centerLat * Math.PI / 180);
-    const widthKm = (maxLng - minLng) * cosL * 111;
-    const heightKm = (maxLat - minLat) * 111;
-    const halfKm = Math.max(widthKm, heightKm, 1) / 2 * 1.15;
-    SC = 280 / halfKm;
+    const { lng0, lat0, sc, proj: proj2, jsP } = mercProj(minLng, minLat, maxLng, maxLat);
+    centerLng = lng0; centerLat = lat0; SC = sc;
 
-    const proj2 = (lng: number, lat: number): [number, number] => [
-      300 + (lng - centerLng) * cosL * 111 * SC,
-      300 - (lat - centerLat) * 111 * SC,
-    ];
     const svgPoints = selection.points.map((p) => proj2(p[0], p[1]).join(',')).join(' ');
 
-    // Polygon: full background (no clip), polygon outlined on top
     clipPathDef = '';
     bgLayer = hasBg
       ? `<image href="map-bg.jpg" x="0" y="0" width="600" height="600" preserveAspectRatio="none"/>`
@@ -531,26 +579,15 @@ export function buildMapHtml(
       const polyAreaKm2 = Math.round(Math.abs(shoelace) / 2);
       statCard2 = `<div class="sc"><div class="sc-n">${polyAreaKm2.toLocaleString(numLocale)}</div><div class="sc-l">${ui.area}</div></div>`;
     }
-    jsProj = `const CLng=${centerLng},CLat=${centerLat};
-const cosL=Math.cos(CLat*Math.PI/180),SC=${SC.toFixed(6)};
-function proj(lng,lat){return[300+(lng-CLng)*cosL*111*SC,300-(lat-CLat)*111*SC];}`;
+    jsProj = jsP;
   } else if (selection.type === 'route') {
     const lngs = selection.trackPoints.map((p) => p[0]);
     const lats = selection.trackPoints.map((p) => p[1]);
     const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-    centerLng = (minLng + maxLng) / 2;
-    centerLat = (minLat + maxLat) / 2;
-    const cosLr = Math.cos(centerLat * Math.PI / 180);
-    const widthKmR = (maxLng - minLng) * cosLr * 111;
-    const heightKmR = (maxLat - minLat) * 111;
-    const halfKmR = Math.max(widthKmR, heightKmR, 1) / 2 * 1.15;
-    SC = 280 / halfKmR;
+    const { lng0, lat0, sc, proj: projR, jsP } = mercProj(minLng, minLat, maxLng, maxLat);
+    centerLng = lng0; centerLat = lat0; SC = sc;
 
-    const projR = (lng: number, lat: number): [number, number] => [
-      300 + (lng - centerLng) * cosLr * 111 * SC,
-      300 - (lat - centerLat) * 111 * SC,
-    ];
     const svgRoutePoints = selection.trackPoints.map((p) => projR(p[0], p[1]).join(',')).join(' ');
     const svgBufPoints = selection.polygon.map((p) => projR(p[0], p[1]).join(',')).join(' ');
 
@@ -562,28 +599,19 @@ function proj(lng,lat){return[300+(lng-CLng)*cosL*111*SC,300-(lat-CLat)*111*SC];
         <polyline points="${svgRoutePoints}" fill="none" stroke="#1d1d1f" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
     selectionMarker = '';
     statCard2 = `<div class="sc"><div class="sc-n">${selection.lengthKm?.toFixed(0) ?? '?'} km</div><div class="sc-l">${ui.length}</div></div>`;
-    jsProj = `const CLng=${centerLng},CLat=${centerLat};
-const cosL=Math.cos(CLat*Math.PI/180),SC=${SC.toFixed(6)};
-function proj(lng,lat){return[300+(lng-CLng)*cosL*111*SC,300-(lat-CLat)*111*SC];}`;
+    jsProj = jsP;
   } else if (selection.type === 'rectangle') {
-    centerLng = (selection.sw[0] + selection.ne[0]) / 2;
-    centerLat = (selection.sw[1] + selection.ne[1]) / 2;
-    const cosL = Math.cos(centerLat * Math.PI / 180);
-    const widthKm = (selection.ne[0] - selection.sw[0]) * cosL * 111;
-    const heightKm = (selection.ne[1] - selection.sw[1]) * 111;
-    const halfKm = Math.max(widthKm, heightKm, 1) / 2 * 1.15;
-    SC = 280 / halfKm;
+    const [minLng, minLat] = selection.sw;
+    const [maxLng, maxLat] = selection.ne;
+    const { lng0, lat0, sc, proj: proj2, jsP } = mercProj(minLng, minLat, maxLng, maxLat);
+    centerLng = lng0; centerLat = lat0; SC = sc;
 
-    const proj2 = (lng: number, lat: number): [number, number] => [
-      300 + (lng - centerLng) * cosL * 111 * SC,
-      300 - (lat - centerLat) * 111 * SC,
-    ];
-    const [x1, y1] = proj2(selection.sw[0], selection.sw[1]);
-    const [x2, y2] = proj2(selection.ne[0], selection.ne[1]);
+    const [x1, y1] = proj2(minLng, minLat);
+    const [x2, y2] = proj2(maxLng, maxLat);
     const rectX = Math.min(x1, x2), rectY = Math.min(y1, y2);
     const rectW = Math.abs(x2 - x1), rectH = Math.abs(y2 - y1);
-
-    const areaKm2 = Math.round(widthKm * heightKm);
+    const cosL = Math.cos(centerLat * Math.PI / 180);
+    const areaKm2 = Math.round((maxLng - minLng) * cosL * 111 * (maxLat - minLat) * 111);
 
     clipPathDef = '';
     bgLayer = hasBg
@@ -592,9 +620,32 @@ function proj(lng,lat){return[300+(lng-CLng)*cosL*111*SC,300-(lat-CLat)*111*SC];
     selectionOverlay = `<rect x="${rectX.toFixed(1)}" y="${rectY.toFixed(1)}" width="${rectW.toFixed(1)}" height="${rectH.toFixed(1)}" fill="rgba(0,0,0,0.05)" stroke="#3a3a3c" stroke-width="2.5"/>`;
     selectionMarker = '';
     statCard2 = `<div class="sc"><div class="sc-n">${areaKm2.toLocaleString(numLocale)}</div><div class="sc-l">${ui.area}</div></div>`;
-    jsProj = `const CLng=${centerLng},CLat=${centerLat};
-const cosL=Math.cos(CLat*Math.PI/180),SC=${SC.toFixed(6)};
-function proj(lng,lat){return[300+(lng-CLng)*cosL*111*SC,300-(lat-CLat)*111*SC];}`;
+    jsProj = jsP;
+  } else if (selection.type === 'admin-area') {
+    const [minLng, minLat, maxLng, maxLat] = selection.bbox;
+    const { lng0, lat0, sc, proj: projA, jsP } = mercProj(minLng, minLat, maxLng, maxLat);
+    centerLng = lng0; centerLat = lat0; SC = sc;
+
+    const svgAdminPoints = selection.polygon.map((p) => projA(p[0], p[1]).join(',')).join(' ');
+
+    clipPathDef = '';
+    bgLayer = hasBg
+      ? `<image href="map-bg.jpg" x="0" y="0" width="600" height="600" preserveAspectRatio="none"/>`
+      : `<rect x="0" y="0" width="600" height="600" fill="#e9e9ed"/>`;
+    selectionOverlay = `<polygon points="${svgAdminPoints}" fill="rgba(0,0,0,0.05)" stroke="#3a3a3c" stroke-width="2.5" stroke-linejoin="round"/>`;
+    selectionMarker = '';
+    {
+      const cosForArea = Math.cos(centerLat * Math.PI / 180);
+      let shoelace = 0;
+      const pts = selection.polygon;
+      for (let i = 0; i < pts.length; i++) {
+        const j = (i + 1) % pts.length;
+        shoelace += (pts[i][0] * cosForArea * 111) * (pts[j][1] * 111) - (pts[j][0] * cosForArea * 111) * (pts[i][1] * 111);
+      }
+      const polyAreaKm2 = Math.round(Math.abs(shoelace) / 2);
+      statCard2 = `<div class="sc"><div class="sc-n">${polyAreaKm2.toLocaleString(numLocale)}</div><div class="sc-l">${ui.area}</div></div>`;
+    }
+    jsProj = jsP;
   } else {
     centerLng = selection.center[0];
     centerLat = selection.center[1];
@@ -1027,6 +1078,8 @@ Erstellt mit [Waedeker](https://waedeker.netzgewoelbe.com)
         const hKm = Math.round((selection.ne[1] - selection.sw[1]) * 111);
         return `Rechteck ${wKm}×${hKm} km`;
       })()
+    : selection.type === 'admin-area'
+    ? `Verwaltungsgebiet (${selection.label ?? ''})`
     : `Radius: ${selection.radiusKm} km`
 } |
 | Wikipedia-Sprache | ${config.language.toUpperCase()} |

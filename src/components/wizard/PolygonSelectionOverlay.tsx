@@ -20,6 +20,7 @@ export default function PolygonSelectionOverlay({ onConfirm, onBack }: PolygonSe
 
   const [points, setPoints] = useState<[number, number][]>([]);
   const [closed, setClosed] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeocoderResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -28,6 +29,10 @@ export default function PolygonSelectionOverlay({ onConfirm, onBack }: PolygonSe
   const handleChange = useCallback((pts: [number, number][], isClosed: boolean) => {
     setPoints(pts);
     setClosed(isClosed);
+  }, []);
+
+  const handleHistoryChange = useCallback((_canUndo: boolean, redoAvailable: boolean) => {
+    setCanRedo(redoAvailable);
   }, []);
 
   const handleSearch = useCallback(async (q: string) => {
@@ -107,7 +112,7 @@ export default function PolygonSelectionOverlay({ onConfirm, onBack }: PolygonSe
     >
       {/* Map — full screen */}
       <div style={{ position: 'absolute', inset: 0 }}>
-        <PolygonMap ref={mapRef} interactive onChange={handleChange} />
+        <PolygonMap ref={mapRef} interactive onChange={handleChange} onHistoryChange={handleHistoryChange} />
       </div>
 
       {/* ── Top bar ─────────────────────────────────────── */}
@@ -209,6 +214,16 @@ export default function PolygonSelectionOverlay({ onConfirm, onBack }: PolygonSe
                   <path d="M2 7a5 5 0 1 0 1.2-3.2M2 3v4h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 {t.polygonOverlay.undo}
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#c4a882] bg-[#EDE0CE] text-[#700700] text-sm font-medium hover:bg-[#d8cdb8] active:scale-95 transition-all disabled:opacity-35 disabled:cursor-not-allowed touch-manipulation"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M12 7a5 5 0 1 1-1.2-3.2M12 3v4H8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {t.polygonOverlay.redo}
               </button>
               <button
                 onClick={handleReset}

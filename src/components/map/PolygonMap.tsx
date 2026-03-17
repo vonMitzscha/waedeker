@@ -28,6 +28,7 @@ interface PolygonMapProps {
   interactive?: boolean;
   initialSelection?: PolygonSelection | null;
   onChange?: (points: [number, number][], closed: boolean) => void;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   articles?: WikiArticle[];
   language?: string;
 }
@@ -90,7 +91,7 @@ function markersGeoJSON(articles: WikiArticle[]) {
 }
 
 const PolygonMap = forwardRef<PolygonMapHandle, PolygonMapProps>(function PolygonMap(
-  { interactive = false, initialSelection = null, onChange, articles, language = 'de' },
+  { interactive = false, initialSelection = null, onChange, onHistoryChange, articles, language = 'de' },
   ref,
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -115,7 +116,8 @@ const PolygonMap = forwardRef<PolygonMapHandle, PolygonMapProps>(function Polygo
       buildGeoJSON(pointsRef.current, closedRef.current, previewRef.current),
     );
     onChange?.(pointsRef.current, closedRef.current);
-  }, [onChange]);
+    onHistoryChange?.(historyRef.current.length > 0, redoStackRef.current.length > 0);
+  }, [onChange, onHistoryChange]);
 
   useImperativeHandle(ref, () => ({
     getPoints: () => pointsRef.current,
@@ -160,11 +162,14 @@ const PolygonMap = forwardRef<PolygonMapHandle, PolygonMapProps>(function Polygo
       // Hide polygon overlay for clean background snapshot
       POLY_LAYERS.forEach((id) => { try { m.setLayoutProperty(id, 'visibility', 'none'); } catch { /* layer may not exist */ } });
 
+      const canvas = m.getCanvas();
+      const W = canvas.width, H = canvas.height;
+      const S = Math.min(W, H);
+      // Padding matches the SVG's 1.15× margin factor so background and overlay align
+      const padding = Math.round(S * (300 - 280 / 1.15) / 600);
+
       return new Promise((resolve) => {
         m.once('idle', () => {
-          const canvas = m.getCanvas();
-          const W = canvas.width, H = canvas.height;
-          const S = Math.min(W, H);
           const out = document.createElement('canvas');
           out.width = S; out.height = S;
           const ctx = out.getContext('2d');
@@ -176,7 +181,7 @@ const PolygonMap = forwardRef<PolygonMapHandle, PolygonMapProps>(function Polygo
           POLY_LAYERS.forEach((id) => { try { m.setLayoutProperty(id, 'visibility', 'visible'); } catch { /* */ } });
           resolve(out.toDataURL('image/jpeg', 0.88));
         });
-        m.fitBounds(bounds, { padding: 60, maxZoom: 16, animate: false });
+        m.fitBounds(bounds, { padding, maxZoom: 16, animate: false });
       });
     },
     flyTo: (center) => { mapRef.current?.flyTo({ center, zoom: 12, duration: 900 }); },

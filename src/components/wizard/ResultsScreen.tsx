@@ -16,6 +16,7 @@ const PointRadiusMap = dynamic(() => import('@/components/map/PointRadiusMap'), 
 const PolygonMap = dynamic(() => import('@/components/map/PolygonMap'), { ssr: false });
 const RectangleMap = dynamic(() => import('@/components/map/RectangleMap'), { ssr: false });
 const GpxMap = dynamic(() => import('@/components/map/GpxMap'), { ssr: false });
+const AdminAreaMap = dynamic(() => import('@/components/map/AdminAreaMap'), { ssr: false });
 
 interface ResultsScreenProps {
   selection: GeographicSelection;
@@ -78,6 +79,8 @@ export default function ResultsScreen({
       ? (selection.filename ?? t.config.selectionLabels.route)
       : selection.type === 'rectangle'
       ? t.config.selectionLabels.rectangle
+      : selection.type === 'admin-area'
+      ? t.config.selectionLabels.adminArea
       : `${selection.center[1].toFixed(3)}°N, ${selection.center[0].toFixed(3)}°E`
   );
 
@@ -325,6 +328,13 @@ export default function ResultsScreen({
             <RectangleMap
               initialSelection={selection}
               interactive={false}
+              articles={result.articles}
+              language={config.language}
+            />
+          ) : selection.type === 'admin-area' ? (
+            <AdminAreaMap
+              polygon={selection.polygon}
+              bbox={selection.bbox}
               articles={result.articles}
               language={config.language}
             />

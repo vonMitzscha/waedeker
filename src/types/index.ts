@@ -1,4 +1,4 @@
-export type SelectionMode = 'point-radius' | 'rectangle' | 'polygon' | 'route';
+export type SelectionMode = 'point-radius' | 'rectangle' | 'polygon' | 'route' | 'admin-area';
 
 export type WizardStep =
   | 'hero'
@@ -43,7 +43,16 @@ export interface RouteSelection {
   sourcePlatform?: 'google' | 'apple';
 }
 
-export type GeographicSelection = PointRadiusSelection | RectangleSelection | PolygonSelection | RouteSelection;
+export interface AdminAreaSelection {
+  type: 'admin-area';
+  /** Exterior ring of the boundary polygon (or largest polygon for multipolygon) — [lng, lat] */
+  polygon: [number, number][];
+  /** Bounding box [minLng, minLat, maxLng, maxLat] for the SPARQL spatial query */
+  bbox: [number, number, number, number];
+  label?: string;
+}
+
+export type GeographicSelection = PointRadiusSelection | RectangleSelection | PolygonSelection | RouteSelection | AdminAreaSelection;
 
 export interface WikidataConfig {
   language: string;

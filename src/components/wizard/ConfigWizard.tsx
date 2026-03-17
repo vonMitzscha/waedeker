@@ -11,6 +11,7 @@ const PointRadiusMap = dynamic(() => import('@/components/map/PointRadiusMap'), 
 const PolygonMap = dynamic(() => import('@/components/map/PolygonMap'), { ssr: false });
 const RectangleMap = dynamic(() => import('@/components/map/RectangleMap'), { ssr: false });
 const GpxMap = dynamic(() => import('@/components/map/GpxMap'), { ssr: false });
+const AdminAreaMap = dynamic(() => import('@/components/map/AdminAreaMap'), { ssr: false });
 
 // Pinned: most widely used Wikipedia editions (shown first, always visible)
 const PINNED_LANGUAGES = [
@@ -244,6 +245,8 @@ export default function ConfigWizard({ selection, onBack, onSubmit }: ConfigWiza
       ? (selection.filename ?? t.config.selectionLabels.route)
       : selection.type === 'rectangle'
       ? t.config.selectionLabels.rectangle
+      : selection.type === 'admin-area'
+      ? t.config.selectionLabels.adminArea
       : `${selection.center[1].toFixed(3)}° N`
   );
 
@@ -265,6 +268,8 @@ export default function ConfigWizard({ selection, onBack, onSubmit }: ConfigWiza
             <GpxMap trackPoints={selection.trackPoints} bufferPolygon={selection.polygon} interactive={false} />
           ) : selection.type === 'rectangle' ? (
             <RectangleMap initialSelection={selection} interactive={false} />
+          ) : selection.type === 'admin-area' ? (
+            <AdminAreaMap polygon={selection.polygon} bbox={selection.bbox} />
           ) : (
             <PointRadiusMap initialSelection={selection} interactive={false} compact />
           )}
@@ -286,6 +291,11 @@ export default function ConfigWizard({ selection, onBack, onSubmit }: ConfigWiza
                 ) : selection.type === 'rectangle' ? (
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <rect x="2" y="4" width="12" height="8" stroke="#F5EDE0" strokeWidth="1.5" rx="1" fill="none" />
+                  </svg>
+                ) : selection.type === 'admin-area' ? (
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 6 L8 3 L12 5 L14 9 L11 13 L5 13 L2 9 Z" stroke="#F5EDE0" strokeWidth="1.5" fill="none" />
+                    <circle cx="8" cy="8" r="1.5" fill="#F5EDE0" />
                   </svg>
                 ) : (
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -320,6 +330,21 @@ export default function ConfigWizard({ selection, onBack, onSubmit }: ConfigWiza
                         const wKm = Math.round((selection.ne[0] - selection.sw[0]) * cosL * 111);
                         const hKm = Math.round((selection.ne[1] - selection.sw[1]) * 111);
                         return `${wKm} km × ${hKm} km`;
+                      })()
+                    : selection.type === 'admin-area'
+                    ? (() => {
+                        const pts = selection.polygon;
+                        let area = 0;
+                        for (let i = 0; i < pts.length; i++) {
+                          const j = (i + 1) % pts.length;
+                          area += pts[i][0] * pts[j][1];
+                          area -= pts[j][0] * pts[i][1];
+                        }
+                        area = Math.abs(area) / 2;
+                        const avgLat = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+                        const cosL = Math.cos(avgLat * Math.PI / 180);
+                        const areaKm2 = Math.round(area * 111 * 111 * cosL);
+                        return `ca. ${areaKm2.toLocaleString('de')} km²`;
                       })()
                     : `Radius ${selection.radiusKm} km · ca. ${Math.round(Math.PI * selection.radiusKm ** 2).toLocaleString('de')} km²`
                   }

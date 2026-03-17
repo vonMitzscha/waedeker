@@ -17,6 +17,7 @@ const MapSelectionOverlay = dynamic(() => import('@/components/wizard/MapSelecti
 const PolygonSelectionOverlay = dynamic(() => import('@/components/wizard/PolygonSelectionOverlay'), { ssr: false });
 const RectangleSelectionOverlay = dynamic(() => import('@/components/wizard/RectangleSelectionOverlay'), { ssr: false });
 const GpxSelectionOverlay = dynamic(() => import('@/components/wizard/GpxSelectionOverlay'), { ssr: false });
+const AdminAreaSelectionOverlay = dynamic(() => import('@/components/wizard/AdminAreaSelectionOverlay'), { ssr: false });
 const ConfigWizard = dynamic(() => import('@/components/wizard/ConfigWizard'), { ssr: false });
 const ResultsScreen = dynamic(() => import('@/components/wizard/ResultsScreen'), { ssr: false });
 
@@ -96,6 +97,7 @@ export default function Home() {
     import('@/components/wizard/PolygonSelectionOverlay');
     import('@/components/wizard/RectangleSelectionOverlay');
     import('@/components/wizard/GpxSelectionOverlay');
+    import('@/components/wizard/AdminAreaSelectionOverlay');
   }, []);
 
   const handleModeSelect = useCallback((m: SelectionMode) => {
@@ -220,6 +222,15 @@ export default function Home() {
               initialMapLink={urlMapLinkRef.current}
               initialProvider={urlMapProviderRef.current}
               autoConfirm={!!urlMapLinkRef.current}
+            />
+          </motion.div>
+        )}
+
+        {step === 'map-selection' && mode === 'admin-area' && (
+          <motion.div key="map-admin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ position: 'fixed', inset: 0, zIndex: 50 }}>
+            <AdminAreaSelectionOverlay
+              onConfirm={handleMapConfirm}
+              onBack={() => setStep('mode-select')}
             />
           </motion.div>
         )}

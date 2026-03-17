@@ -64,6 +64,21 @@ const MODE_ICONS: ModeCard[] = [
       </svg>
     ),
   },
+  {
+    mode: 'admin-area',
+    available: true,
+    icon: (
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+        <path d="M9 13 L17 7 L27 10 L34 18 L30 29 L20 34 L10 29 L6 20 Z"
+          stroke="currentColor" strokeWidth="1.5" fill="currentColor" fillOpacity="0.07" opacity="0.7" />
+        <path d="M17 7 L19 20 L20 34" stroke="currentColor" strokeWidth="0.75" opacity="0.25" />
+        <path d="M9 13 L19 20 L30 29" stroke="currentColor" strokeWidth="0.75" opacity="0.25" />
+        <circle cx="19" cy="20" r="3" fill="currentColor" opacity="0.6" />
+        <circle cx="13" cy="15" r="1.5" fill="currentColor" opacity="0.35" />
+        <circle cx="27" cy="25" r="1.5" fill="currentColor" opacity="0.35" />
+      </svg>
+    ),
+  },
 ];
 
 interface ModeSelectSectionProps {
@@ -124,13 +139,9 @@ export default function ModeSelectSection({ onSelect }: ModeSelectSectionProps) 
                     <div className={`text-[#700700] transition-transform duration-300 ${item.available ? 'group-hover:scale-110' : ''}`}>
                       {item.icon}
                     </div>
-                    {item.label ? (
-                      <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#c4a882]/20 text-[#b89370] border border-[#c4a882]/30">
-                        {item.label}
-                      </span>
-                    ) : (
+                    {item.mode === 'admin-area' && (
                       <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-[#6B8F3E]/10 text-[#6B8F3E] border border-[#6B8F3E]/20">
-                        {t.modeSelect.available}
+                        {t.modeSelect.newBadge}
                       </span>
                     )}
                   </div>

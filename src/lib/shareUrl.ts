@@ -45,6 +45,9 @@ export function encodeShareUrl(
         if (selection.sourcePlatform) p.set('mapprovider', selection.sourcePlatform);
       }
       break;
+    case 'admin-area':
+      // Admin-area polygons can be very large — not suitable for URL encoding; skip share.
+      break;
   }
 
   const origin = typeof window !== 'undefined' ? window.location.origin : '';

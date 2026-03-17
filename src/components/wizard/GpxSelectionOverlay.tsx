@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import DrawRouteOverlay from './DrawRouteOverlay';
 import type { RouteSelection } from '@/types';
 import GpxMap, { type GpxMapHandle } from '@/components/map/GpxMap';
 import Button from '@/components/ui/Button';
@@ -45,6 +46,7 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
   const [sourcePlatform, setSourcePlatform] = useState<'google' | 'apple' | undefined>(undefined);
 
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showDrawOverlay, setShowDrawOverlay] = useState(false);
 
   // Recompute buffer polygon when trackPoints or bufferKm changes
   useEffect(() => {
@@ -295,6 +297,15 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
     onConfirm(selection, snap ?? undefined);
   };
 
+  const handleDrawConfirm = useCallback((points: [number, number][]) => {
+    const km = routeLengthKm(points);
+    setTrackPoints(points);
+    setFilename('gezeichnete-route.gpx');
+    setLengthKm(km);
+    setRouteState('ready');
+    setShowDrawOverlay(false);
+  }, []);
+
   // Auto-trigger link loading when arriving from a share URL with a maps link
   const autoTriggered = useRef(false);
   useEffect(() => {
@@ -475,6 +486,22 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
                 </>
               )}
             </div>
+          )}
+
+          {/* Draw route button */}
+          {showDropzone && (
+            <button
+              onClick={() => setShowDrawOverlay(true)}
+              className="w-full mb-8 -mt-4 flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border border-[#c4a882]/60 bg-[#F9F3EA]/40 text-sm font-medium text-[#700700]/70 hover:text-[#700700] hover:border-[#700700]/40 hover:bg-[#F9F3EA]/70 transition-all touch-manipulation"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0 opacity-70">
+                <path d="M2 12 C4 8 6 6 8 7 C10 8 12 5 14 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="2" cy="12" r="1.5" fill="currentColor" />
+                <circle cx="14" cy="4" r="1.5" fill="currentColor" />
+                <circle cx="8" cy="7" r="1.5" fill="currentColor" />
+              </svg>
+              {t.gpxOverlay.drawRoute.button}
+            </button>
           )}
 
           {/* Loading indicator */}
@@ -671,6 +698,16 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
           </Button>
         </div>
       </div>
+
+      {/* Draw route overlay — rendered on top (z-[60]) */}
+      <AnimatePresence>
+        {showDrawOverlay && (
+          <DrawRouteOverlay
+            onConfirm={handleDrawConfirm}
+            onBack={() => setShowDrawOverlay(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

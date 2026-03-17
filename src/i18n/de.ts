@@ -3,7 +3,7 @@ import type { Translations } from './types';
 const de = {
   hero: {
     pronunciation: '/ˈveːdəkɐ/',
-    slogan: 'Wikipedias Wissen im handlichen Baedeker-Format',
+    slogan: 'Das Wissen Wikipedias im handlichen Baedeker-Format',
     description:
       'Erstelle ein kompaktes offline verwendbares Wikipedia-Archiv als ZIM-Datei für jede beliebige Region der Welt – perfekt für Wanderungen, Expeditionen oder Gebiete ohne Netzabdeckung.',
     ctaStart: 'Gebiet auswählen',
@@ -81,6 +81,7 @@ const de = {
     headingItalic: 'dein Gebiet?',
     description: 'Wähle eine Methode, um den geografischen Bereich für dein Wikipedia-Archiv festzulegen.',
     available: 'Verfügbar',
+    newBadge: 'Neu',
     select: 'Auswählen',
     modes: [
       {
@@ -98,6 +99,10 @@ const de = {
       {
         title: 'Route + Puffer',
         desc: 'Importiere eine GPX-Datei und definiere eine Pufferzone entlang der Route.',
+      },
+      {
+        title: 'Verwaltungsgebiet',
+        desc: 'Suche nach Städten, Gemeinden, Bundesländern oder Ländern und nutze deren OSM-Grenzen als Auswahlbereich.',
       },
     ],
   },
@@ -147,6 +152,7 @@ const de = {
       polygon: (n: number) => `Polygon (${n} Punkte)`,
       rectangle: 'Rechteck',
       route: 'Route',
+      adminArea: 'Verwaltungsgebiet',
     },
   },
 
@@ -396,6 +402,7 @@ const de = {
       drawing: (n: number) => `${n} Punkte · Ersten Punkt antippen oder doppelklicken zum Schließen`,
     },
     undo: 'Rückgängig',
+    redo: 'Wiederholen',
     reset: 'Zurücksetzen',
     statusReady: 'Polygon bereit',
     statusPoints: (n: number) => `${n} Punkt${n !== 1 ? 'e' : ''}`,
@@ -456,6 +463,22 @@ const de = {
       ],
     },
     ctaConfirm: 'Auswahl bestätigen',
+    drawRoute: {
+      button: 'Route annäherungsweise zeichnen',
+      backAriaLabel: 'Zurück zur GPX-Auswahl',
+      hint: {
+        empty: 'Klicke auf die Karte, um Wegpunkte zu setzen',
+        drawing: (n: number) => n === 1
+          ? '1 Punkt gesetzt – mindestens einen weiteren setzen'
+          : `${n} Punkte gesetzt`,
+      },
+      undo: 'Rückgängig',
+      redo: 'Wiederholen',
+      reset: 'Neu starten',
+      statusEmpty: 'Noch keine Punkte gesetzt',
+      statusReady: (n: number) => `${n} Punkte – Pfad bereit zur Bestätigung`,
+      ctaConfirm: 'Pfad bestätigen',
+    },
     errors: {
       noWaypoints: 'Keine Wegpunkte in der GPX-Datei gefunden.',
       parseError: 'Die GPX-Datei konnte nicht gelesen werden.',
@@ -465,6 +488,15 @@ const de = {
       startDestNotFound: 'Start- oder Zielort konnte nicht gefunden werden. Bitte versuche es mit einer GPX-Datei.',
       oneWaypointOnly: 'Es konnte nur ein Wegpunkt gefunden werden. Bitte mindestens Start und Ziel angeben.',
     },
+  },
+
+  adminAreaOverlay: {
+    searchPlaceholder: 'Stadt, Gemeinde, Land oder Bundesland suchen…',
+    backAriaLabel: 'Zurück',
+    hint: 'Verwaltungsgebiet über die Suche auswählen',
+    noSelectionHint: 'Noch kein Gebiet ausgewählt',
+    ctaConfirm: 'Auswahl bestätigen',
+    noResults: 'Kein Verwaltungsgebiet gefunden',
   },
 } satisfies Translations;
 

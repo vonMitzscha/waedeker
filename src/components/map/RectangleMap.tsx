@@ -159,11 +159,13 @@ const RectangleMap = forwardRef<RectangleMapHandle, RectangleMapProps>(function 
       // Hide rect overlay for clean background snapshot
       RECT_LAYERS.forEach((id) => { try { m.setLayoutProperty(id, 'visibility', 'none'); } catch { /* layer may not exist */ } });
 
+      const canvas = m.getCanvas();
+      const W = canvas.width, H = canvas.height;
+      const S = Math.min(W, H);
+      const padding = Math.round(S * (300 - 280 / 1.15) / 600);
+
       return new Promise((resolve) => {
         m.once('idle', () => {
-          const canvas = m.getCanvas();
-          const W = canvas.width, H = canvas.height;
-          const S = Math.min(W, H);
           const out = document.createElement('canvas');
           out.width = S; out.height = S;
           const ctx = out.getContext('2d');
@@ -175,7 +177,7 @@ const RectangleMap = forwardRef<RectangleMapHandle, RectangleMapProps>(function 
           RECT_LAYERS.forEach((id) => { try { m.setLayoutProperty(id, 'visibility', 'visible'); } catch { /* */ } });
           resolve(out.toDataURL('image/jpeg', 0.88));
         });
-        m.fitBounds([sw, ne], { padding: 60, maxZoom: 16, animate: false });
+        m.fitBounds([sw, ne], { padding, maxZoom: 16, animate: false });
       });
     },
     flyTo: (center) => { mapRef.current?.flyTo({ center, zoom: 12, duration: 900 }); },

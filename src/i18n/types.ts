@@ -47,8 +47,10 @@ export interface Translations {
     headingItalic: string;
     description: string;
     available: string;
+    newBadge: string;
     select: string;
     modes: [
+      { title: string; desc: string },
       { title: string; desc: string },
       { title: string; desc: string },
       { title: string; desc: string },
@@ -96,6 +98,7 @@ export interface Translations {
       polygon: (n: number) => string;
       rectangle: string;
       route: string;
+      adminArea: string;
     };
   };
 
@@ -310,6 +313,7 @@ export interface Translations {
       drawing: (n: number) => string;
     };
     undo: string;
+    redo: string;
     reset: string;
     statusReady: string;
     statusPoints: (n: number) => string;
@@ -331,6 +335,16 @@ export interface Translations {
     statusFirstCorner: string;
     statusEmpty: string;
     ctaConfirm: string;
+  };
+
+  // Administrative area overlay
+  adminAreaOverlay: {
+    searchPlaceholder: string;
+    backAriaLabel: string;
+    hint: string;
+    noSelectionHint: string;
+    ctaConfirm: string;
+    noResults: string;
   };
 
   // GPX overlay
@@ -367,6 +381,20 @@ export interface Translations {
       steps: [string, string, string, string];
     };
     ctaConfirm: string;
+    drawRoute: {
+      button: string;
+      backAriaLabel: string;
+      hint: {
+        empty: string;
+        drawing: (n: number) => string;
+      };
+      undo: string;
+      redo: string;
+      reset: string;
+      statusEmpty: string;
+      statusReady: (n: number) => string;
+      ctaConfirm: string;
+    };
     errors: {
       noWaypoints: string;
       parseError: string;

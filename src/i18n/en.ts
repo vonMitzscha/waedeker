@@ -81,6 +81,7 @@ const en = {
     headingItalic: 'your area?',
     description: 'Choose a method to define the geographic area for your Wikipedia archive.',
     available: 'Available',
+    newBadge: 'New',
     select: 'Select',
     modes: [
       {
@@ -98,6 +99,10 @@ const en = {
       {
         title: 'Route + Buffer',
         desc: 'Import a GPX file and define a buffer zone along the route.',
+      },
+      {
+        title: 'Administrative Area',
+        desc: 'Search for cities, municipalities, federal states or countries and use their OSM boundaries as the selection area.',
       },
     ],
   },
@@ -147,6 +152,7 @@ const en = {
       polygon: (n: number) => `Polygon (${n} points)`,
       rectangle: 'Rectangle',
       route: 'Route',
+      adminArea: 'Administrative area',
     },
   },
 
@@ -396,6 +402,7 @@ const en = {
       drawing: (n: number) => `${n} points · Tap first point or double-click to close`,
     },
     undo: 'Undo',
+    redo: 'Redo',
     reset: 'Reset',
     statusReady: 'Polygon ready',
     statusPoints: (n: number) => `${n} point${n !== 1 ? 's' : ''}`,
@@ -456,6 +463,22 @@ const en = {
       ],
     },
     ctaConfirm: 'Confirm selection',
+    drawRoute: {
+      button: 'Draw route approximately',
+      backAriaLabel: 'Back to GPX selection',
+      hint: {
+        empty: 'Click on the map to place waypoints',
+        drawing: (n: number) => n === 1
+          ? '1 point set – place at least one more'
+          : `${n} points set`,
+      },
+      undo: 'Undo',
+      redo: 'Redo',
+      reset: 'Start over',
+      statusEmpty: 'No points placed yet',
+      statusReady: (n: number) => `${n} points – path ready to confirm`,
+      ctaConfirm: 'Confirm path',
+    },
     errors: {
       noWaypoints: 'No waypoints found in the GPX file.',
       parseError: 'The GPX file could not be read.',
@@ -465,6 +488,15 @@ const en = {
       startDestNotFound: 'Start or destination could not be found. Please try with a GPX file.',
       oneWaypointOnly: 'Only one waypoint was found. Please provide at least a start and destination.',
     },
+  },
+
+  adminAreaOverlay: {
+    searchPlaceholder: 'Search city, municipality, state or country…',
+    backAriaLabel: 'Back',
+    hint: 'Select an administrative area via search',
+    noSelectionHint: 'No area selected yet',
+    ctaConfirm: 'Confirm selection',
+    noResults: 'No administrative area found',
   },
 } satisfies Translations;
 
