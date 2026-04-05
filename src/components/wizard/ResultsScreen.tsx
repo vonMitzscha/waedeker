@@ -333,7 +333,7 @@ export default function ResultsScreen({
             />
           ) : selection.type === 'admin-area' ? (
             <AdminAreaMap
-              polygon={selection.polygon}
+              areas={selection.areas}
               bbox={selection.bbox}
               articles={result.articles}
               language={config.language}

@@ -105,6 +105,7 @@ export interface Translations {
   loading: {
     heading: string;
     description: string;
+    linkDepthHint: string;
     steps: [string, string, string, string, string];
     linkDepthProgress: (d: number, total: number) => string;
   };
@@ -345,6 +346,9 @@ export interface Translations {
     noSelectionHint: string;
     ctaConfirm: string;
     noResults: string;
+    addArea: string;
+    removeArea: string;
+    combinedLabel: (labels: string[]) => string;
   };
 
   // GPX overlay

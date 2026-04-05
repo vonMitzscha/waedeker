@@ -159,6 +159,7 @@ const de = {
   loading: {
     heading: 'Wikidata wird befragt',
     description: 'Wir suchen alle Wikipedia-Artikel mit geografischen Koordinaten in deinem Gebiet.',
+    linkDepthHint: 'Mit aktivierter Linktiefe werden alle verlinkten Artikel vollständig ermittelt – das kann je nach Gebietsgröße einige Minuten dauern.',
     steps: [
       'Verbinde mit Wikidata…',
       'Suche geogetaggte Artikel…',
@@ -497,6 +498,9 @@ const de = {
     noSelectionHint: 'Noch kein Gebiet ausgewählt',
     ctaConfirm: 'Auswahl bestätigen',
     noResults: 'Kein Verwaltungsgebiet gefunden',
+    addArea: 'Weiteres Gebiet hinzufügen',
+    removeArea: 'Gebiet entfernen',
+    combinedLabel: (labels: string[]) => labels.join(' + '),
   },
 } satisfies Translations;
 

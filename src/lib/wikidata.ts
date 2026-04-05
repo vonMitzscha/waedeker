@@ -27,11 +27,47 @@ function pointInPolygon(pt: [number, number], poly: [number, number][]): boolean
   return inside;
 }
 
+/** Point inside outer ring AND outside all hole rings (enclaves). */
+function pointInPolygonWithHoles(pt: [number, number], poly: [number, number][], holes: [number, number][][]): boolean {
+  if (!pointInPolygon(pt, poly)) return false;
+  for (const hole of holes) {
+    if (pointInPolygon(pt, hole)) return false;
+  }
+  return true;
+}
+
 /** Returns [minLng, minLat, maxLng, maxLat] for a set of points. */
 function polygonBbox(points: [number, number][]): [number, number, number, number] {
   const lngs = points.map((p) => p[0]);
   const lats = points.map((p) => p[1]);
   return [Math.min(...lngs), Math.min(...lats), Math.max(...lngs), Math.max(...lats)];
+}
+
+/** Returns the bounding box of a route expanded by bufferKm on all sides. */
+function routeBbox(trackPoints: [number, number][], bufferKm: number): [number, number, number, number] {
+  const lngs = trackPoints.map((p) => p[0]);
+  const lats = trackPoints.map((p) => p[1]);
+  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
+  const latPad = bufferKm / 111;
+  const lngPad = bufferKm / (111 * Math.cos((midLat * Math.PI) / 180));
+  return [Math.min(...lngs) - lngPad, Math.min(...lats) - latPad, Math.max(...lngs) + lngPad, Math.max(...lats) + latPad];
+}
+
+/** Haversine distance in km between two [lng, lat] points. */
+function haversineKm(a: [number, number], b: [number, number]): number {
+  const R = 6371;
+  const dLat = ((b[1] - a[1]) * Math.PI) / 180;
+  const dLng = ((b[0] - a[0]) * Math.PI) / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos((a[1] * Math.PI) / 180) * Math.cos((b[1] * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Returns true if pt is within bufferKm of any track point. */
+function pointNearRoute(pt: [number, number], trackPoints: [number, number][], bufferKm: number): boolean {
+  for (const tp of trackPoints) {
+    if (haversineKm(pt, tp) <= bufferKm) return true;
+  }
+  return false;
 }
 
 type Binding = Record<string, { value: string; type: string }>;
@@ -69,7 +105,7 @@ export async function queryWikidata(
     bd:serviceParam wikibase:cornerEast "Point(${maxLng} ${maxLat})"^^geo:wktLiteral.
   }`;
   } else if (selection.type === 'route') {
-    const [minLng, minLat, maxLng, maxLat] = polygonBbox(selection.polygon);
+    const [minLng, minLat, maxLng, maxLat] = routeBbox(selection.trackPoints, selection.bufferKm);
     spatialService = `SERVICE wikibase:box {
     ?item wdt:P625 ?coord.
     bd:serviceParam wikibase:cornerWest "Point(${minLng} ${minLat})"^^geo:wktLiteral.
@@ -138,9 +174,9 @@ SELECT DISTINCT ?item ?itemLabel ?article ?coord ?type ?typeLabel WHERE {
   if (selection.type === 'polygon') {
     articles = articles.filter((a) => !a.coord || pointInPolygon(a.coord, selection.points));
   } else if (selection.type === 'route') {
-    articles = articles.filter((a) => !a.coord || pointInPolygon(a.coord, selection.polygon));
+    articles = articles.filter((a) => !a.coord || pointNearRoute(a.coord, selection.trackPoints, selection.bufferKm));
   } else if (selection.type === 'admin-area') {
-    articles = articles.filter((a) => !a.coord || pointInPolygon(a.coord, selection.polygon));
+    articles = articles.filter((a) => !a.coord || selection.areas.some((area) => pointInPolygonWithHoles(a.coord!, area.polygon, area.holes)));
   }
 
   const { linkedTitles, linkCache } = await expandByLinkDepth(
@@ -162,9 +198,10 @@ SELECT DISTINCT ?item ?itemLabel ?article ?coord ?type ?typeLabel WHERE {
 
 const LINK_BATCH = 50;       // titles per Wikipedia API request
 const LINK_CONCURRENCY = 6;  // parallel requests
-const LINK_CAP_PER_LEVEL = 3000; // max new articles per depth level
 
-/** Fetch all namespace-0 links for a set of titles from the Wikipedia Action API. */
+/** Fetch all namespace-0 links for a set of titles from the Wikipedia Action API.
+ *  Follows plcontinue pagination so that articles with more than 500 links are
+ *  fetched completely instead of being silently truncated. */
 async function fetchWikiLinks(
   titles: string[],
   lang: string,
@@ -173,18 +210,26 @@ async function fetchWikiLinks(
   if (titles.length === 0) return result;
 
   async function fetchBatch(batch: string[]): Promise<void> {
-    const params = new URLSearchParams({
-      action: 'query', prop: 'links', plnamespace: '0', pllimit: '500',
-      titles: batch.join('|'), format: 'json', origin: '*',
-    });
-    try {
-      const res = await fetch(`https://${lang}.wikipedia.org/w/api.php?${params}`);
-      const data = await res.json();
-      const pages = (data.query?.pages ?? {}) as Record<string, { title: string; links?: { title: string }[] }>;
-      for (const page of Object.values(pages)) {
-        if (page.links?.length) result.set(page.title, page.links.map((l) => l.title));
-      }
-    } catch { /* network error — skip batch */ }
+    let plcontinue: string | undefined;
+    do {
+      const params = new URLSearchParams({
+        action: 'query', prop: 'links', plnamespace: '0', pllimit: '500',
+        titles: batch.join('|'), format: 'json', origin: '*',
+      });
+      if (plcontinue) params.set('plcontinue', plcontinue);
+      try {
+        const res = await fetch(`https://${lang}.wikipedia.org/w/api.php?${params}`);
+        const data = await res.json();
+        const pages = (data.query?.pages ?? {}) as Record<string, { title: string; links?: { title: string }[] }>;
+        for (const page of Object.values(pages)) {
+          if (page.links?.length) {
+            const existing = result.get(page.title) ?? [];
+            result.set(page.title, existing.concat(page.links.map((l) => l.title)));
+          }
+        }
+        plcontinue = data.continue?.plcontinue;
+      } catch { plcontinue = undefined; /* network error — stop pagination for this batch */ }
+    } while (plcontinue);
   }
 
   const batches: string[][] = [];
@@ -230,14 +275,11 @@ export async function expandByLinkDepth(
     onProgress?.(d, depth, true);
 
     const nextLevel = new Set<string>();
-    let capReached = false;
     for (const title of currentLevel) {
-      if (capReached) break;
       for (const link of (cache.get(title) ?? [])) {
         if (!geoSet.has(link) && !allLinked.has(link)) {
           allLinked.add(link);
           if (d < depth) nextLevel.add(link);
-          if (allLinked.size >= LINK_CAP_PER_LEVEL * d) { capReached = true; break; }
         }
       }
     }
@@ -262,7 +304,7 @@ export async function queryCategoriesForArea(
     bd:serviceParam wikibase:cornerEast "Point(${maxLng} ${maxLat})"^^geo:wktLiteral.
   }`;
   } else if (selection.type === 'route') {
-    const [minLng, minLat, maxLng, maxLat] = polygonBbox(selection.polygon);
+    const [minLng, minLat, maxLng, maxLat] = routeBbox(selection.trackPoints, selection.bufferKm);
     spatialService = `SERVICE wikibase:box {
     ?item wdt:P625 ?coord.
     bd:serviceParam wikibase:cornerWest "Point(${minLng} ${minLat})"^^geo:wktLiteral.
@@ -626,23 +668,31 @@ function proj(lng,lat){return[300+(lng-CLng)*SC,300-(MY(lat)-MYCtr)*SC];}`;
     const { lng0, lat0, sc, proj: projA, jsP } = mercProj(minLng, minLat, maxLng, maxLat);
     centerLng = lng0; centerLat = lat0; SC = sc;
 
-    const svgAdminPoints = selection.polygon.map((p) => projA(p[0], p[1]).join(',')).join(' ');
+    // Build SVG path for all areas with holes using even-odd fill rule
+    const svgAdminPath = selection.areas.map(({ polygon, holes }) => {
+      const outerPath = 'M ' + polygon.map((p) => projA(p[0], p[1]).join(' ')).join(' L ') + ' Z';
+      const holePaths = holes.map((hole) =>
+        'M ' + hole.map((p) => projA(p[0], p[1]).join(' ')).join(' L ') + ' Z'
+      ).join(' ');
+      return outerPath + (holePaths ? ' ' + holePaths : '');
+    }).join(' ');
 
     clipPathDef = '';
     bgLayer = hasBg
       ? `<image href="map-bg.jpg" x="0" y="0" width="600" height="600" preserveAspectRatio="none"/>`
       : `<rect x="0" y="0" width="600" height="600" fill="#e9e9ed"/>`;
-    selectionOverlay = `<polygon points="${svgAdminPoints}" fill="rgba(0,0,0,0.05)" stroke="#3a3a3c" stroke-width="2.5" stroke-linejoin="round"/>`;
+    selectionOverlay = `<path d="${svgAdminPath}" fill-rule="evenodd" fill="rgba(0,0,0,0.05)" stroke="#3a3a3c" stroke-width="2.5" stroke-linejoin="round"/>`;
     selectionMarker = '';
     {
-      const cosForArea = Math.cos(centerLat * Math.PI / 180);
-      let shoelace = 0;
-      const pts = selection.polygon;
-      for (let i = 0; i < pts.length; i++) {
-        const j = (i + 1) % pts.length;
-        shoelace += (pts[i][0] * cosForArea * 111) * (pts[j][1] * 111) - (pts[j][0] * cosForArea * 111) * (pts[i][1] * 111);
+      let totalShoelace = 0;
+      for (const { polygon: pts } of selection.areas) {
+        const cosForArea = Math.cos(centerLat * Math.PI / 180);
+        for (let i = 0; i < pts.length; i++) {
+          const j = (i + 1) % pts.length;
+          totalShoelace += (pts[i][0] * cosForArea * 111) * (pts[j][1] * 111) - (pts[j][0] * cosForArea * 111) * (pts[i][1] * 111);
+        }
       }
-      const polyAreaKm2 = Math.round(Math.abs(shoelace) / 2);
+      const polyAreaKm2 = Math.round(Math.abs(totalShoelace) / 2);
       statCard2 = `<div class="sc"><div class="sc-n">${polyAreaKm2.toLocaleString(numLocale)}</div><div class="sc-l">${ui.area}</div></div>`;
     }
     jsProj = jsP;

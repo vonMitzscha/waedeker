@@ -159,6 +159,7 @@ const en = {
   loading: {
     heading: 'Querying Wikidata',
     description: 'We are searching for all Wikipedia articles with geographic coordinates in your area.',
+    linkDepthHint: 'With link depth enabled, all linked articles are fully resolved – this may take a few minutes depending on the size of the area.',
     steps: [
       'Connecting to Wikidata…',
       'Searching geotagged articles…',
@@ -497,6 +498,9 @@ const en = {
     noSelectionHint: 'No area selected yet',
     ctaConfirm: 'Confirm selection',
     noResults: 'No administrative area found',
+    addArea: 'Add another area',
+    removeArea: 'Remove area',
+    combinedLabel: (labels: string[]) => labels.join(' + '),
   },
 } satisfies Translations;
 

@@ -32,6 +32,8 @@ export interface AdminAreaResult {
   bbox: [number, number, number, number];
   /** Exterior ring of the boundary polygon (largest ring for MultiPolygon) — [lng, lat] */
   polygon: [number, number][];
+  /** Inner rings (holes) of the boundary polygon — e.g. enclaves — [lng, lat] */
+  holes: [number, number][][];
   /** Full GeoJSON geometry for map display */
   geojson: object;
 }
@@ -59,12 +61,18 @@ export async function searchAdminAreas(query: string): Promise<AdminAreaResult[]
       const geojson = item.geojson as { type: string; coordinates: unknown };
 
       let polygon: [number, number][];
+      let holes: [number, number][][];
       if (geojson.type === 'Polygon') {
-        polygon = (geojson.coordinates as [number, number][][])[0];
+        const coords = geojson.coordinates as [number, number][][];
+        polygon = coords[0];
+        holes = coords.slice(1); // inner rings (enclaves)
       } else {
-        // MultiPolygon: use exterior ring of the largest polygon
-        const rings = (geojson.coordinates as [number, number][][][]).map((p) => p[0]);
-        polygon = rings.reduce((a, b) => (a.length >= b.length ? a : b));
+        // MultiPolygon: use exterior ring of the largest polygon; collect all inner rings
+        const polys = geojson.coordinates as [number, number][][][];
+        const largest = polys.reduce((a, b) => (a[0].length >= b[0].length ? a : b));
+        polygon = largest[0];
+        // Collect inner rings from all sub-polygons
+        holes = polys.flatMap((p) => p.slice(1));
       }
 
       const displayName = item.display_name as string;
@@ -75,6 +83,7 @@ export async function searchAdminAreas(query: string): Promise<AdminAreaResult[]
         lng: parseFloat(item.lon as string),
         bbox,
         polygon,
+        holes,
         geojson: geojson as object,
       };
     });

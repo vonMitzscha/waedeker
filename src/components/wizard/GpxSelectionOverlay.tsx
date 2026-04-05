@@ -48,6 +48,7 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
   const [isDragOver, setIsDragOver] = useState(false);
   const [showDrawOverlay, setShowDrawOverlay] = useState(false);
 
+
   // Recompute buffer polygon when trackPoints or bufferKm changes
   useEffect(() => {
     if (trackPoints.length >= 2) {
@@ -74,7 +75,6 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
         }
         const pts = subsamplePoints(parsed, 500);
         const km = routeLengthKm(pts);
-        setBufferPolygon(computeBufferPolygon(pts, bufferKm));
         setTrackPoints(pts);
         setFilename(file.name);
         setLengthKm(km);
@@ -89,7 +89,7 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
       setErrorMsg(t.gpxOverlay.errors.readError);
     };
     reader.readAsText(file);
-  }, [bufferKm]);
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -196,7 +196,6 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
       const pts = await fetchOsrmRoute(waypoints, profile);
       const subsampled = subsamplePoints(pts, 500);
       const km = routeLengthKm(subsampled);
-      setBufferPolygon(computeBufferPolygon(subsampled, bufferKm));
       setTrackPoints(subsampled);
       setFilename('google-maps-route.gpx');
       setLengthKm(km);
@@ -266,7 +265,6 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
       const pts = await fetchOsrmRoute(allCoords, profile);
       const subsampled = subsamplePoints(pts, 500);
       const km = routeLengthKm(subsampled);
-      setBufferPolygon(computeBufferPolygon(subsampled, bufferKm));
       setTrackPoints(subsampled);
       setFilename('apple-maps-route.gpx');
       setLengthKm(km);
@@ -283,12 +281,11 @@ export default function GpxSelectionOverlay({ onConfirm, onBack, initialBufferKm
   const handleConfirm = async () => {
     if (routeState !== 'ready' || trackPoints.length < 2) return;
     const snap = await mapRef.current?.getSnapshot();
-    const poly = computeBufferPolygon(trackPoints, bufferKm);
     const selection: RouteSelection = {
       type: 'route',
       trackPoints,
       bufferKm,
-      polygon: poly,
+      polygon: bufferPolygon,
       filename,
       lengthKm,
       sourceLink,

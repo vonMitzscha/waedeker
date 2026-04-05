@@ -33,7 +33,7 @@ export interface RouteSelection {
   type: 'route';
   trackPoints: [number, number][]; // [lng, lat] subsampled track points
   bufferKm: number;
-  polygon: [number, number][]; // computed buffer polygon [lng, lat] (convex hull of expanded circles)
+  polygon: [number, number][]; // union-of-circles buffer polygon [lng, lat]
   label?: string;
   filename?: string;
   lengthKm?: number;
@@ -43,11 +43,21 @@ export interface RouteSelection {
   sourcePlatform?: 'google' | 'apple';
 }
 
+export interface AdminAreaEntry {
+  /** Exterior ring of the boundary polygon — [lng, lat] */
+  polygon: [number, number][];
+  /** Inner rings (holes / enclaves) — [lng, lat] */
+  holes: [number, number][][];
+  /** Bounding box [minLng, minLat, maxLng, maxLat] */
+  bbox: [number, number, number, number];
+  label?: string;
+}
+
 export interface AdminAreaSelection {
   type: 'admin-area';
-  /** Exterior ring of the boundary polygon (or largest polygon for multipolygon) — [lng, lat] */
-  polygon: [number, number][];
-  /** Bounding box [minLng, minLat, maxLng, maxLat] for the SPARQL spatial query */
+  /** One or more administrative areas whose shapes are combined */
+  areas: AdminAreaEntry[];
+  /** Union bounding box of all areas [minLng, minLat, maxLng, maxLat] */
   bbox: [number, number, number, number];
   label?: string;
 }

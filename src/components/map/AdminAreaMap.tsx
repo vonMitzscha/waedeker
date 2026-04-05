@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { WikiArticle } from '@/types';
+import type { WikiArticle, AdminAreaEntry } from '@/types';
 import {
   MAP_STYLE_URL,
   selectionFillPaint,
@@ -24,7 +24,7 @@ type AnyMap = {
 };
 
 interface AdminAreaMapProps {
-  polygon: [number, number][];
+  areas: AdminAreaEntry[];
   bbox: [number, number, number, number];
   articles?: WikiArticle[];
   language?: string;
@@ -43,7 +43,7 @@ function markersGeoJSON(articles: WikiArticle[]) {
   };
 }
 
-export default function AdminAreaMap({ polygon, bbox, articles = [], language = 'de' }: AdminAreaMapProps) {
+export default function AdminAreaMap({ areas, bbox, articles = [], language = 'de' }: AdminAreaMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<AnyMap | null>(null);
   const rawMapRef = useRef<import('maplibre-gl').Map | null>(null);
@@ -83,9 +83,12 @@ export default function AdminAreaMap({ polygon, bbox, articles = [], language = 
         m.addSource('admin-polygon', {
           type: 'geojson',
           data: {
-            type: 'Feature',
-            properties: {},
-            geometry: { type: 'Polygon', coordinates: [polygon] },
+            type: 'FeatureCollection',
+            features: areas.map(({ polygon, holes }) => ({
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'Polygon', coordinates: [polygon, ...holes] },
+            })),
           },
         });
         m.addLayer({ id: 'admin-fill', type: 'fill', source: 'admin-polygon', paint: selectionFillPaint });

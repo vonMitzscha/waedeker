@@ -95,7 +95,7 @@ const GpxMap = forwardRef<GpxMapHandle, GpxMapProps>(function GpxMap(
       const pts = trackPointsRef.current;
       if (pts.length < 2) return null;
 
-      // Prefer buffer polygon bounds so the snapshot captures the full query area
+      // Use buffer polygon bounds so the snapshot captures the full query area
       const poly = bufferPolygonRef.current;
       const sourcePts = poly.length >= 3 ? poly : pts;
       const lngs = sourcePts.map((p) => p[0]);
@@ -163,7 +163,7 @@ const GpxMap = forwardRef<GpxMapHandle, GpxMapProps>(function GpxMap(
       map.on('load', () => {
         mapRef.current = map;
 
-        // Buffer polygon
+        // Buffer polygon — fill + dashed outline (same style as all other selection modes)
         map.addSource('buffer', {
           type: 'geojson',
           data: bufferGeoJSON(bufferPolygonRef.current),
@@ -183,7 +183,7 @@ const GpxMap = forwardRef<GpxMapHandle, GpxMapProps>(function GpxMap(
           paint: selectionLinePaint,
         });
 
-        // Route line
+        // Route centerline
         map.addSource('route', {
           type: 'geojson',
           data: routeGeoJSON(trackPointsRef.current),
@@ -194,10 +194,10 @@ const GpxMap = forwardRef<GpxMapHandle, GpxMapProps>(function GpxMap(
           type: 'line',
           source: 'route',
           layout: { 'line-cap': 'round', 'line-join': 'round' },
-          paint: { 'line-color': '#700700', 'line-width': 3 },
+          paint: { 'line-color': '#700700', 'line-width': 2.5 },
         });
 
-        // Fit to buffer polygon bounds (or route as fallback) if present at init
+        // Fit to buffer polygon bounds (or route as fallback)
         const pts = trackPointsRef.current;
         if (pts.length >= 2) {
           const poly = bufferPolygonRef.current;
@@ -210,7 +210,7 @@ const GpxMap = forwardRef<GpxMapHandle, GpxMapProps>(function GpxMap(
           );
         }
 
-        // Article dots (non-interactive display only)
+        // Article dots
         map.addSource('articles', { type: 'geojson', data: markersGeoJSON([]) });
         map.addLayer({
           id: 'article-dots',
@@ -264,15 +264,13 @@ const GpxMap = forwardRef<GpxMapHandle, GpxMapProps>(function GpxMap(
     if (bufferSrc) bufferSrc.setData(bufferGeoJSON(bufferPolygon));
   }, [bufferPolygon, mapReady]);
 
-  // Update route source + refit when route changes (new GPX loaded)
-  // Use buffer polygon bounds for fitBounds so the full query area is visible
+  // Update route source + refit when route changes
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
     const m = mapRef.current;
     const routeSrc = m.getSource('route') as import('maplibre-gl').GeoJSONSource | undefined;
     if (routeSrc) routeSrc.setData(routeGeoJSON(trackPoints));
     if (trackPoints.length >= 2) {
-      // bufferPolygonRef is always current — use it if available, else fall back to route
       const poly = bufferPolygonRef.current;
       const fitPts = poly.length >= 3 ? poly : trackPoints;
       const lngs = fitPts.map((p) => p[0]);

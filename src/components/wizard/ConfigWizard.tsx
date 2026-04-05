@@ -269,7 +269,7 @@ export default function ConfigWizard({ selection, onBack, onSubmit }: ConfigWiza
           ) : selection.type === 'rectangle' ? (
             <RectangleMap initialSelection={selection} interactive={false} />
           ) : selection.type === 'admin-area' ? (
-            <AdminAreaMap polygon={selection.polygon} bbox={selection.bbox} />
+            <AdminAreaMap areas={selection.areas} bbox={selection.bbox} />
           ) : (
             <PointRadiusMap initialSelection={selection} interactive={false} compact />
           )}
@@ -333,18 +333,20 @@ export default function ConfigWizard({ selection, onBack, onSubmit }: ConfigWiza
                       })()
                     : selection.type === 'admin-area'
                     ? (() => {
-                        const pts = selection.polygon;
-                        let area = 0;
-                        for (let i = 0; i < pts.length; i++) {
-                          const j = (i + 1) % pts.length;
-                          area += pts[i][0] * pts[j][1];
-                          area -= pts[j][0] * pts[i][1];
+                        let totalKm2 = 0;
+                        for (const { polygon: pts } of selection.areas) {
+                          let area = 0;
+                          for (let i = 0; i < pts.length; i++) {
+                            const j = (i + 1) % pts.length;
+                            area += pts[i][0] * pts[j][1];
+                            area -= pts[j][0] * pts[i][1];
+                          }
+                          area = Math.abs(area) / 2;
+                          const avgLat = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+                          const cosL = Math.cos(avgLat * Math.PI / 180);
+                          totalKm2 += area * 111 * 111 * cosL;
                         }
-                        area = Math.abs(area) / 2;
-                        const avgLat = pts.reduce((s, p) => s + p[1], 0) / pts.length;
-                        const cosL = Math.cos(avgLat * Math.PI / 180);
-                        const areaKm2 = Math.round(area * 111 * 111 * cosL);
-                        return `ca. ${areaKm2.toLocaleString('de')} km²`;
+                        return `ca. ${Math.round(totalKm2).toLocaleString('de')} km²`;
                       })()
                     : `Radius ${selection.radiusKm} km · ca. ${Math.round(Math.PI * selection.radiusKm ** 2).toLocaleString('de')} km²`
                   }

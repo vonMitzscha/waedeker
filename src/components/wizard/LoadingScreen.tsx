@@ -67,9 +67,15 @@ export default function LoadingScreen({ linkDepth = 0, linkProgress = null }: Lo
         >
           {t.loading.heading}
         </h2>
-        <p className="text-sm text-[#700700]/50 mb-10 leading-relaxed">
+        <p className={`text-sm text-[#700700]/50 leading-relaxed ${linkDepth > 0 ? 'mb-4' : 'mb-10'}`}>
           {t.loading.description}
         </p>
+
+        {linkDepth > 0 && (
+          <p className="text-xs text-[#700700]/60 bg-[#EDE0CE] border border-[#c4a882]/50 rounded-lg px-4 py-3 mb-10 leading-relaxed text-left">
+            {t.loading.linkDepthHint}
+          </p>
+        )}
 
         {/* Steps */}
         <div className="space-y-2.5 text-left">

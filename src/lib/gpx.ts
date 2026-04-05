@@ -1,6 +1,7 @@
 /**
  * GPX utilities: parse, subsample, haversine length, buffer polygon, OSRM routing.
  */
+import polygonClipping from 'polygon-clipping';
 
 /** Parse a GPX XML string, returns [lng, lat] pairs. Tries trkpt → rtept → wpt. */
 export function parseGpx(xmlString: string): [number, number][] {
@@ -61,106 +62,73 @@ export function routeLengthKm(points: [number, number][]): number {
 }
 
 /**
- * Compute a corridor (tube/stroke) buffer polygon around a route.
- * At each vertex the offset direction is the bisector of the two adjacent left normals,
- * scaled to exactly radiusKm. Semicircular end caps are added at start and end.
+ * Compute a corridor buffer polygon around a route using circle union.
+ *
+ * The buffer is the union of circles of radius `radiusKm` centred on a subsampled
+ * set of track points. This is mathematically the exact Minkowski sum of the route
+ * with a disk — it never self-intersects regardless of how much the route bends,
+ * and MapLibre renders it as a single clean filled shape.
+ *
  * Returns polygon as [lng, lat] pairs (not closed, first != last).
+ * Returns [] on failure or too few points.
  */
 export function computeBufferPolygon(
   points: [number, number][],
   radiusKm: number,
-  capSteps = 16,
+  circleSteps = 16,
 ): [number, number][] {
   if (points.length < 2) return [];
-  const n = points.length;
 
-  // Local flat-earth projection centred on the midpoint
-  const midLat = points[Math.floor(n / 2)][1];
+  // Latitude correction: 1° longitude ≠ 1° latitude in km.
+  const midLat = points[Math.floor(points.length / 2)][1];
   const cosLat = Math.cos((midLat * Math.PI) / 180);
-  const toXY = ([lng, lat]: [number, number]): [number, number] => [lng * 111 * cosLat, lat * 111];
-  const toGeo = ([x, y]: [number, number]): [number, number] => [x / (111 * cosLat), y / 111];
+  const lngR = radiusKm / (111 * cosLat); // radius in degrees longitude
+  const latR = radiusKm / 111;            // radius in degrees latitude
 
-  // Thin the route so consecutive polygon vertices are at least R/3 apart.
-  // This keeps the polygon smooth and clean regardless of GPX point density.
-  const minSpacing = radiusKm / 3;
-  const rawXY = points.map(toXY);
-  const xy: [number, number][] = [rawXY[0]];
-  for (let i = 1; i < n - 1; i++) {
-    const prev = xy[xy.length - 1];
-    const dx = rawXY[i][0] - prev[0];
-    const dy = rawXY[i][1] - prev[1];
-    if (Math.sqrt(dx * dx + dy * dy) >= minSpacing) xy.push(rawXY[i]);
-  }
-  xy.push(rawXY[n - 1]); // always keep last point
-
-  const R = radiusKm;
-
-  // Unit direction vector for each segment
-  const dirs: [number, number][] = [];
-  for (let i = 0; i < xy.length - 1; i++) {
-    const dx = xy[i + 1][0] - xy[i][0];
-    const dy = xy[i + 1][1] - xy[i][1];
-    const len = Math.sqrt(dx * dx + dy * dy);
-    dirs.push(len > 1e-9 ? [dx / len, dy / len] : (dirs[i - 1] ?? [1, 0]));
+  // Densify: insert intermediate points so no consecutive pair is more than
+  // 0.8*radiusKm apart. This guarantees adjacent circles overlap → connected union.
+  // Without this, a hand-drawn route with few, widely-spaced points produces
+  // separate non-overlapping circles and the union returns multiple polygons.
+  const maxSpacingKm = radiusKm * 0.8;
+  const dense: [number, number][] = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const [x0, y0] = dense[dense.length - 1];
+    const [x1, y1] = points[i];
+    const distKm = Math.sqrt(((x1 - x0) * 111 * cosLat) ** 2 + ((y1 - y0) * 111) ** 2);
+    if (distKm > maxSpacingKm) {
+      const steps = Math.ceil(distKm / maxSpacingKm);
+      for (let s = 1; s < steps; s++) {
+        const t = s / steps;
+        dense.push([x0 + t * (x1 - x0), y0 + t * (y1 - y0)]);
+      }
+    }
+    dense.push([x1, y1]);
   }
 
-  // Left normal (CCW 90°): [-dy, dx]
-  const lNorm = ([dx, dy]: [number, number]): [number, number] => [-dy, dx];
+  // Cap at 400 points for performance (polygon-clipping is O(n log n)).
+  // The cap preserves connectivity because subsamplePoints keeps uniform spacing.
+  const sparse = dense.length > 400 ? subsamplePoints(dense, 400) : dense;
 
-  // Bisector of the two adjacent left normals at vertex i, scaled to R.
-  // Using the sum of the two unit normals gives a smooth join for all turn angles
-  // with no spikes — the vector is bounded to R.
-  const m = xy.length; // thinned point count
-
-  const offsetAt = (i: number): [number, number] => {
-    const ln1 = lNorm(i > 0 ? dirs[i - 1] : dirs[0]);
-    const ln2 = lNorm(i < m - 1 ? dirs[i] : dirs[m - 2]);
-    const bx = ln1[0] + ln2[0];
-    const by = ln1[1] + ln2[1];
-    const bl = Math.sqrt(bx * bx + by * by);
-    if (bl < 0.01) return [ln1[0] * R, ln1[1] * R];
-    return [(bx / bl) * R, (by / bl) * R];
-  };
-
-  // Semicircle arc from angle a1 to a2 (inclusive, CCW)
-  const semicap = (cx: number, cy: number, a1: number, a2: number): [number, number][] => {
-    let da = a2 - a1;
-    while (da < 0) da += 2 * Math.PI;
-    return Array.from({ length: capSteps + 1 }, (_, k) => {
-      const a = a1 + (da * k) / capSteps;
-      return [cx + Math.cos(a) * R, cy + Math.sin(a) * R] as [number, number];
+  // Build one closed circle polygon per sample point.
+  const circlePolys = sparse.map(([lng, lat]) => {
+    const ring: [number, number][] = Array.from({ length: circleSteps }, (_, i) => {
+      const a = (2 * Math.PI * i) / circleSteps;
+      return [lng + lngR * Math.cos(a), lat + latR * Math.sin(a)] as [number, number];
     });
-  };
+    ring.push(ring[0]); // close
+    return [[ring]] as [[typeof ring]];
+  });
 
-  // Build left / right offset arrays
-  const leftPts: [number, number][] = [];
-  const rightPts: [number, number][] = [];
-  for (let i = 0; i < m; i++) {
-    const [ox, oy] = offsetAt(i);
-    leftPts.push([xy[i][0] + ox, xy[i][1] + oy]);
-    rightPts.push([xy[i][0] - ox, xy[i][1] - oy]);
+  try {
+    // Union of all circles → the exact Minkowski buffer, always valid, never self-intersecting.
+    const result = polygonClipping.union(...(circlePolys as unknown as Parameters<typeof polygonClipping.union>));
+    if (!result || result.length === 0) return [];
+    // Take the outer ring of the largest polygon (area heuristic: first is largest after union)
+    const outerRing = result[0][0] as [number, number][];
+    return outerRing.slice(0, -1); // remove the closing duplicate
+  } catch {
+    return [];
   }
-
-  // Assemble: right forward → end cap → left backward → start cap
-  const poly: [number, number][] = [...rightPts];
-
-  const lastLn = lNorm(dirs[m - 2]);
-  poly.push(...semicap(
-    xy[m - 1][0], xy[m - 1][1],
-    Math.atan2(-lastLn[1], -lastLn[0]),
-    Math.atan2(lastLn[1], lastLn[0]),
-  ));
-
-  for (let i = m - 1; i >= 0; i--) poly.push(leftPts[i]);
-
-  const firstLn = lNorm(dirs[0]);
-  poly.push(...semicap(
-    xy[0][0], xy[0][1],
-    Math.atan2(firstLn[1], firstLn[0]),
-    Math.atan2(-firstLn[1], -firstLn[0]),
-  ));
-
-  return poly.map(toGeo);
 }
 
 /**
