@@ -196,61 +196,35 @@ SELECT DISTINCT ?item ?itemLabel ?article ?coord ?type ?typeLabel WHERE {
 
 // ── Link-depth expansion ──────────────────────────────────────────────────────
 
-const LINK_BATCH = 50;           // titles per Wikipedia API request
-const LINK_CONCURRENCY = 3;      // parallel batch requests
-const LINK_MAX_PAGES = 10;       // max pagination steps per batch (~5 000 links per article)
-const LINK_ROUND_DELAY_MS = 200; // pause between concurrency rounds
+const LINK_CHUNK = 200; // titles per request to our own API route
 
-/** Fetch all namespace-0 links for a set of titles from the Wikipedia Action API.
- *  Titles are batched (50/request). Each batch is paginated up to LINK_MAX_PAGES.
- *  onBatchDone is called after each completed batch for progress tracking. */
+/** Fetch all namespace-0 links for a set of titles via the /api/wikilinks proxy.
+ *  The proxy runs server-side (correct User-Agent, in-memory cache, no 429s from browser).
+ *  onChunkDone is called after each chunk for progress tracking. */
 async function fetchWikiLinks(
   titles: string[],
   lang: string,
-  onBatchDone?: () => void,
+  onChunkDone?: () => void,
 ): Promise<Map<string, string[]>> {
   const result = new Map<string, string[]>();
   if (titles.length === 0) return result;
 
-  async function fetchBatch(batch: string[]): Promise<void> {
-    let plcontinue: string | undefined;
-    let paginationStep = 0;
-    do {
-      const params = new URLSearchParams({
-        action: 'query', prop: 'links', plnamespace: '0', pllimit: '500',
-        titles: batch.join('|'), format: 'json', origin: '*',
+  for (let i = 0; i < titles.length; i += LINK_CHUNK) {
+    const chunk = titles.slice(i, i + LINK_CHUNK);
+    try {
+      const res = await fetch('/api/wikilinks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ titles: chunk, lang }),
       });
-      if (plcontinue) params.set('plcontinue', plcontinue);
-      try {
-        const res = await fetch(`https://${lang}.wikipedia.org/w/api.php?${params}`);
-        if (res.status === 429) {
-          const wait = parseInt(res.headers.get('Retry-After') ?? '10', 10);
-          await new Promise((r) => setTimeout(r, wait * 1000));
-          continue; // retry without incrementing paginationStep
+      if (res.ok) {
+        const data = await res.json() as { links: Record<string, string[]> };
+        for (const [title, links] of Object.entries(data.links)) {
+          result.set(title, links);
         }
-        const data = await res.json();
-        const pages = (data.query?.pages ?? {}) as Record<string, { title: string; links?: { title: string }[] }>;
-        for (const page of Object.values(pages)) {
-          if (page.links?.length) {
-            const existing = result.get(page.title) ?? [];
-            result.set(page.title, existing.concat(page.links.map((l) => l.title)));
-          }
-        }
-        plcontinue = data.continue?.plcontinue;
-        paginationStep++;
-      } catch { plcontinue = undefined; }
-    } while (plcontinue && paginationStep < LINK_MAX_PAGES);
-    onBatchDone?.();
-  }
-
-  const batches: string[][] = [];
-  for (let i = 0; i < titles.length; i += LINK_BATCH) batches.push(titles.slice(i, i + LINK_BATCH));
-
-  for (let i = 0; i < batches.length; i += LINK_CONCURRENCY) {
-    await Promise.all(batches.slice(i, i + LINK_CONCURRENCY).map(fetchBatch));
-    if (i + LINK_CONCURRENCY < batches.length) {
-      await new Promise((r) => setTimeout(r, LINK_ROUND_DELAY_MS));
-    }
+      }
+    } catch { /* network error — skip chunk */ }
+    onChunkDone?.();
   }
   return result;
 }
@@ -280,14 +254,14 @@ export async function expandByLinkDepth(
 
   for (let d = 1; d <= depth; d++) {
     const toFetch = currentLevel.filter((t) => !cache.has(t));
-    const totalBatches = Math.ceil(toFetch.length / LINK_BATCH);
-    let doneBatches = 0;
+    const totalChunks = Math.ceil(toFetch.length / LINK_CHUNK);
+    let doneChunks = 0;
     onProgress?.(d, depth, false, 0);
 
     if (toFetch.length > 0) {
       const linkMap = await fetchWikiLinks(toFetch, lang, () => {
-        doneBatches++;
-        onProgress?.(d, depth, false, totalBatches > 0 ? doneBatches / totalBatches : 0);
+        doneChunks++;
+        onProgress?.(d, depth, false, totalChunks > 0 ? doneChunks / totalChunks : 0);
       });
       for (const [title, links] of linkMap) cache.set(title, links);
     }
