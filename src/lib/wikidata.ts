@@ -196,21 +196,25 @@ SELECT DISTINCT ?item ?itemLabel ?article ?coord ?type ?typeLabel WHERE {
 
 // ── Link-depth expansion ──────────────────────────────────────────────────────
 
-const LINK_BATCH = 50;       // titles per Wikipedia API request
-const LINK_CONCURRENCY = 6;  // parallel requests
+const LINK_BATCH = 50;           // titles per Wikipedia API request
+const LINK_CONCURRENCY = 3;      // parallel batch requests
+const LINK_MAX_PAGES = 10;       // max pagination steps per batch (~5 000 links per article)
+const LINK_ROUND_DELAY_MS = 200; // pause between concurrency rounds
 
 /** Fetch all namespace-0 links for a set of titles from the Wikipedia Action API.
- *  Follows plcontinue pagination so that articles with more than 500 links are
- *  fetched completely instead of being silently truncated. */
+ *  Titles are batched (50/request). Each batch is paginated up to LINK_MAX_PAGES.
+ *  onBatchDone is called after each completed batch for progress tracking. */
 async function fetchWikiLinks(
   titles: string[],
   lang: string,
+  onBatchDone?: () => void,
 ): Promise<Map<string, string[]>> {
   const result = new Map<string, string[]>();
   if (titles.length === 0) return result;
 
   async function fetchBatch(batch: string[]): Promise<void> {
     let plcontinue: string | undefined;
+    let paginationStep = 0;
     do {
       const params = new URLSearchParams({
         action: 'query', prop: 'links', plnamespace: '0', pllimit: '500',
@@ -219,6 +223,11 @@ async function fetchWikiLinks(
       if (plcontinue) params.set('plcontinue', plcontinue);
       try {
         const res = await fetch(`https://${lang}.wikipedia.org/w/api.php?${params}`);
+        if (res.status === 429) {
+          const wait = parseInt(res.headers.get('Retry-After') ?? '10', 10);
+          await new Promise((r) => setTimeout(r, wait * 1000));
+          continue; // retry without incrementing paginationStep
+        }
         const data = await res.json();
         const pages = (data.query?.pages ?? {}) as Record<string, { title: string; links?: { title: string }[] }>;
         for (const page of Object.values(pages)) {
@@ -228,19 +237,25 @@ async function fetchWikiLinks(
           }
         }
         plcontinue = data.continue?.plcontinue;
-      } catch { plcontinue = undefined; /* network error — stop pagination for this batch */ }
-    } while (plcontinue);
+        paginationStep++;
+      } catch { plcontinue = undefined; }
+    } while (plcontinue && paginationStep < LINK_MAX_PAGES);
+    onBatchDone?.();
   }
 
   const batches: string[][] = [];
   for (let i = 0; i < titles.length; i += LINK_BATCH) batches.push(titles.slice(i, i + LINK_BATCH));
+
   for (let i = 0; i < batches.length; i += LINK_CONCURRENCY) {
     await Promise.all(batches.slice(i, i + LINK_CONCURRENCY).map(fetchBatch));
+    if (i + LINK_CONCURRENCY < batches.length) {
+      await new Promise((r) => setTimeout(r, LINK_ROUND_DELAY_MS));
+    }
   }
   return result;
 }
 
-export type LinkProgressCallback = (depth: number, ofDepth: number, done: boolean) => void;
+export type LinkProgressCallback = (depth: number, ofDepth: number, done: boolean, progress?: number) => void;
 
 /**
  * Expand a set of geo-article titles by following Wikipedia links recursively.
@@ -264,15 +279,20 @@ export async function expandByLinkDepth(
   let currentLevel = [...geoTitles];
 
   for (let d = 1; d <= depth; d++) {
-    onProgress?.(d, depth, false);
-
     const toFetch = currentLevel.filter((t) => !cache.has(t));
+    const totalBatches = Math.ceil(toFetch.length / LINK_BATCH);
+    let doneBatches = 0;
+    onProgress?.(d, depth, false, 0);
+
     if (toFetch.length > 0) {
-      const linkMap = await fetchWikiLinks(toFetch, lang);
+      const linkMap = await fetchWikiLinks(toFetch, lang, () => {
+        doneBatches++;
+        onProgress?.(d, depth, false, totalBatches > 0 ? doneBatches / totalBatches : 0);
+      });
       for (const [title, links] of linkMap) cache.set(title, links);
     }
 
-    onProgress?.(d, depth, true);
+    onProgress?.(d, depth, true, 1);
 
     const nextLevel = new Set<string>();
     for (const title of currentLevel) {

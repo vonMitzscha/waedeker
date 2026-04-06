@@ -8,6 +8,7 @@ export interface LinkProgress {
   depth: number;   // current depth level being processed (1-based)
   ofDepth: number; // total depth levels
   done: boolean;   // whether this level is complete
+  progress?: number; // 0–1 fraction of titles fetched within this level
 }
 
 interface LoadingScreenProps {
@@ -128,21 +129,32 @@ export default function LoadingScreen({ linkDepth = 0, linkProgress = null }: Lo
                   animate={{ opacity: isPending ? 0.25 : 1, x: 0 }}
                   transition={{ delay: STEPS.length * 0.1 + d * 0.1 }}
                 >
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
-                    isDone ? 'bg-[#6B8F3E]' : isActive ? 'bg-[#700700]' : 'bg-[#c4a882]/30'
-                  }`}>
-                    {isDone ? (
+                  {isDone ? (
+                    <div className="w-5 h-5 rounded-full bg-[#6B8F3E] flex items-center justify-center flex-shrink-0 mt-0.5">
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                         <path d="M2 5l2 2.5 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                    ) : isActive ? (
-                      <motion.div
-                        className="w-2 h-2 rounded-full bg-[#F5EDE0]"
-                        animate={{ opacity: [1, 0.3, 1] }}
-                        transition={{ repeat: Infinity, duration: 1 }}
+                    </div>
+                  ) : isActive ? (
+                    <svg width="20" height="20" viewBox="0 0 20 20" className="flex-shrink-0 mt-0.5" style={{ transform: 'rotate(-90deg)' }}>
+                      {/* track */}
+                      <circle cx="10" cy="10" r="8" fill="none" stroke="rgba(196,168,130,0.3)" strokeWidth="2" />
+                      {/* filled slice */}
+                      <motion.circle
+                        cx="10" cy="10" r="8"
+                        fill="none"
+                        stroke="#700700"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 8}`}
+                        initial={{ strokeDashoffset: 2 * Math.PI * 8 }}
+                        animate={{ strokeDashoffset: (1 - (linkProgress?.progress ?? 0)) * 2 * Math.PI * 8 }}
+                        transition={{ ease: 'easeOut', duration: 0.4 }}
                       />
-                    ) : null}
-                  </div>
+                    </svg>
+                  ) : (
+                    <div className="w-5 h-5 rounded-full bg-[#c4a882]/30 flex-shrink-0 mt-0.5" />
+                  )}
                   <span className={`text-sm ${isActive ? 'text-[#700700] font-medium' : isDone ? 'text-[#700700]/50' : 'text-[#700700]/25'}`}>
                     {t.loading.linkDepthProgress(d, linkDepth)}
                   </span>

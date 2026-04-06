@@ -47,8 +47,8 @@ export default function Home() {
     setStep('loading');
     setLinkProgress(null);
     try {
-      const res = await queryWikidata(sel, cfg, existingCache, (depth, ofDepth, done) => {
-        setLinkProgress({ depth, ofDepth, done });
+      const res = await queryWikidata(sel, cfg, existingCache, (depth, ofDepth, done, progress) => {
+        setLinkProgress({ depth, ofDepth, done, progress });
       });
       setResult(res);
       setBaseResult(res);
