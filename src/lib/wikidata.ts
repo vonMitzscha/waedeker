@@ -187,7 +187,7 @@ SELECT DISTINCT ?item ?itemLabel ?article ?coord ?type ?typeLabel WHERE {
     onProgress,
   );
 
-  const kbPerArticle = config.includeImages ? 250 : 60;
+  const kbPerArticle = config.includeImages ? 250 : 10;
   const totalCount = articles.length + linkedTitles.length;
   const estimatedSizeMB = Math.max(1, Math.round((totalCount * kbPerArticle) / 1024));
 
@@ -527,7 +527,7 @@ export function buildMapHtml(
   const numLocale = uiLang === 'en' ? 'en' : 'de';
   const dateStr = new Date().toLocaleDateString(uiLang === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
   const ui = uiLang === 'en' ? {
-    subtitle: `Created from Wikipedia ${lang.toUpperCase()} with <a href="https://waedecker.netzgewoelbe.com" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Waedecker</a> \u00b7 Wikipedia\u2019s knowledge in a handy Baedeker format`,
+    subtitle: `Created from Wikipedia ${lang.toUpperCase()} with <a href="https://waedeker.netzgewoelbe.com" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Waedeker</a> \u00b7 Wikipedia\u2019s knowledge in a handy Baedeker format`,
     areaSuffix: 'and surroundings',
     asOf: `As of ${dateStr}`,
     articles: 'Articles',
@@ -537,7 +537,7 @@ export function buildMapHtml(
     searchPlaceholder: 'Search articles\u2026',
     countOf: (n: number, total: number) => `${n} of ${total} articles`,
   } : {
-    subtitle: `Erstellt aus Wikipedia ${lang.toUpperCase()} mit <a href="https://waedecker.netzgewoelbe.com" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Waedecker</a> \u00b7 Das Wissen Wikipedias im handlichen Baedeker-Format`,
+    subtitle: `Erstellt aus Wikipedia ${lang.toUpperCase()} mit <a href="https://waedeker.netzgewoelbe.com" style="color:inherit;text-decoration:underline;text-underline-offset:2px">Waedeker</a> \u00b7 Das Wissen Wikipedias im handlichen Baedeker-Format`,
     areaSuffix: 'und Umgebung',
     asOf: `Stand: ${dateStr}`,
     articles: 'Artikel',
